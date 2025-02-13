@@ -65,6 +65,7 @@ public class Renderer {
                 shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
                 
                 Material material = meshRenderer.material;
+                System.out.println(gameObject + "" + material);
                 if (material.albedo != null) {
                     GL13.glActiveTexture(GL13.GL_TEXTURE0);
                     material.albedo.bind(0);

@@ -33,7 +33,7 @@ public class Main
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
         box.addComponent(new Texture(Texture.Type.ALBEDO));
-        //box.getComponent(MeshRenderer.class).material.albedo = new Texture(FileUtils.load("spain.jpg"));
+        box.getComponent(MeshRenderer.class).material.albedo = new Texture(FileUtils.load("spain.jpg"));
         
         GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(-10, 0, 0)));
         suzanne2.addComponent(MeshRenderer.class);
