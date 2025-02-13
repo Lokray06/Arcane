@@ -1,13 +1,13 @@
 package test;
 
-import engine.Engine;
-import engine.GameObject;
-import engine.Mesh;
-import engine.Scene;
+import engine.*;
 import engine.components.Camera;
 import engine.components.MeshRenderer;
 import engine.components.Transform;
+import engine.utils.FileUtils;
 import org.joml.Vector3f;
+
+import java.io.File;
 
 public class Main
 {
@@ -32,6 +32,8 @@ public class Main
         box.addComponent(MeshRenderer.class);
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
+        box.addComponent(new Texture(Texture.Type.ALBEDO));
+        //box.getComponent(MeshRenderer.class).material.albedo = new Texture(FileUtils.load("spain.jpg"));
         
         GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(-10, 0, 0)));
         suzanne2.addComponent(MeshRenderer.class);
@@ -44,14 +46,14 @@ public class Main
         suzanne3.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         
         Scene scene = new Scene("TestScene");
+        
         GameObject camera = new GameObject("Camera", new Transform(new Vector3f(0, 0, 0)));
         Camera cameraComponent = new Camera(70);
-        camera.addComponentInstance(cameraComponent);
+        camera.addComponent(cameraComponent);
         camera.addComponent(CameraController.class);
         camera.getComponent(Camera.class).isActive = true;
         
-        
-        
+        scene.getRootGameObject().addComponent(GameStuff.class);
         
         scene.addGameObject(suzanne);
         scene.addGameObject(box);

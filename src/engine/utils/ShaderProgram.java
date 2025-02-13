@@ -41,10 +41,12 @@ public class ShaderProgram {
         int compiled = glGetShaderi(shaderId, GL_COMPILE_STATUS);
         if (compiled == 0) {
             String log = glGetShaderInfoLog(shaderId);
-            throw new RuntimeException("Error compiling shader: " + log);
+            throw new RuntimeException("Error compiling shader (" + (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
         }
+        
         return shaderId;
     }
+    
     
     public void use() {
         glUseProgram(programId);
@@ -52,6 +54,11 @@ public class ShaderProgram {
     
     public int getUniformLocation(String name) {
         return glGetUniformLocation(programId, name);
+    }
+    
+    public void setUniform(String name, int value) {
+        int location = glGetUniformLocation(programId, name);
+        glUniform1i(location, value);
     }
     
     public void setUniformMat4(String name, Matrix4f matrix) {

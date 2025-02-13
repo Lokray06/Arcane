@@ -1,5 +1,6 @@
 package engine;
 
+import engine.utils.Logger;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import static org.lwjgl.glfw.GLFW.*;
@@ -7,8 +8,8 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Engine {
-    public static final int WINDOW_WIDTH = 800;
-    public static final int WINDOW_HEIGHT = 600;
+    public static final int WINDOW_WIDTH = 1920;
+    public static final int WINDOW_HEIGHT = 1080;
     public static boolean quit = false;
     public static final int TPS = 30; // Fixed update rate in Hz
     static boolean firstFrame = true;
@@ -122,6 +123,7 @@ public class Engine {
             }
             
             glfwPollEvents();
+//            Logger.logStuff();
         }
         
         // Cleanup renderer resources before shutdown

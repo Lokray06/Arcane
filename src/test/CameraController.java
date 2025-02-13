@@ -6,22 +6,59 @@ import org.joml.Vector3f;
 
 public class CameraController extends Component
 {
+    public float moveSpeed = 0.15f;
+    public float sensitivity = 0.005f;
+    
+    private float rotationX = 0, rotationY = 0;
+    
     @Override
     public void fixedUpdate()
     {
-//        gameObject.transform.rotation.y += 0.01f;
-        if(Input.getKey("space"))
+        if(GameStuff.inGame)
         {
-            gameObject.transform.position.y += 0.1f;
+            Vector3f forward = gameObject.transform.getForward();
+            forward.y = 0;
+            Vector3f right = gameObject.transform.getRight();
+            
+            // Movement controls
+            if(Input.getKey("space"))
+            {
+                gameObject.transform.position.y += moveSpeed;
+            }
+            if(Input.getKey("shift"))
+            {
+                gameObject.transform.position.y -= moveSpeed;
+            }
+            if(Input.getKey("w"))
+            {
+                gameObject.transform.position.add(forward.mul(moveSpeed));
+            }
+            if(Input.getKey("s"))
+            {
+                gameObject.transform.position.add(forward.mul(-moveSpeed));
+            }
+            if(Input.getKey("a"))
+            {
+                gameObject.transform.position.add(right.mul(moveSpeed));
+            }
+            if(Input.getKey("d"))
+            {
+                gameObject.transform.position.add(right.mul(-moveSpeed));
+            }
+            
+            // Mouse look
+            float mouseDeltaX = (float) Input.getMouseDeltaX();
+            float mouseDeltaY = (float) Input.getMouseDeltaY();
+            
+            rotationX += mouseDeltaY * sensitivity; // Pitch
+            rotationY += -mouseDeltaX * sensitivity; // Yaw
+            
+            // Clamp pitch to avoid flipping
+            rotationX = Math.max(-89f, Math.min(89f, rotationX));
+            
+            // Apply rotation using quaternion-based method
+            gameObject.transform.rotation.set(0, rotationY, 0);
+            gameObject.transform.rotate(new Vector3f(1, 0, 0), rotationX);
         }
-        if(Input.getKey("shift"))
-        {
-            gameObject.transform.position.y -= 0.1f;
-        }
-        if(Input.getKeyDown("w"))
-        {
-            gameObject.transform.position.add(gameObject.transform.getForward().mul(2, new Vector3f()));
-        }
-        System.out.println(gameObject.transform);
     }
 }

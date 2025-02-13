@@ -1,10 +1,35 @@
 package engine.utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 
-public class FileUtils {
+public class FileUtils
+{
+    public static String resourcesPath = "C:\\dev\\Arcane\\src\\res\\";
+    
+    
+    public static String load(String fileName) {
+        File root = new File(resourcesPath);
+        return searchFile(root, fileName);
+    }
+    
+    private static String searchFile(File dir, String fileName) {
+        if (!dir.exists() || !dir.isDirectory()) return null;
+        
+        for (File file : Objects.requireNonNull(dir.listFiles())) {
+            if (file.isDirectory()) {
+                String found = searchFile(file, fileName);
+                if (found != null) return found; // Return the first match found
+            } else if (file.getName().equals(fileName)) {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
+    }
+    
     /**
      * Reads the entire content of the file at the given path and returns it as a String.
      *

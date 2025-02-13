@@ -90,7 +90,7 @@ public class GameObject
     
     
     
-    public void addComponentInstance(Component component)
+    public void addComponent(Component component)
     {
         if(component != null)
         {
