@@ -18,23 +18,25 @@ public class Main
         Mesh suzanneMesh = new Mesh(meshPath1);
         Mesh boxMesh = new Mesh(meshPath);
 
+        Material spainMaterial = new Material(new Texture(FileUtils.load("spain.jpg")));
+
+        GameObject floor = new GameObject("Floor", new Transform(new Vector3f( 0,-52, 0), new Vector3f(50)));
+        floor.addComponent(MeshRenderer.class);
+        floor.getComponent(MeshRenderer.class).mesh = boxMesh;
 
         GameObject suzanne = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(0.1f)));
         suzanne.addComponent(MeshRenderer.class);
         suzanne.addComponent(SuzanneComponent.class);
         suzanne.getComponent(MeshRenderer.class).mesh = suzanneMesh;
 
-        GameObject floor = new GameObject("Floor", new Transform(new Vector3f( 0,-52, 0), new Vector3f(50)));
-        floor.addComponent(MeshRenderer.class);
-        floor.getComponent(MeshRenderer.class).mesh = boxMesh;
 
         GameObject box = new GameObject("box", new Transform(new Vector3f(0, 0, 10)));
         box.addComponent(MeshRenderer.class);
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
         //box.addComponent(new Texture(Texture.Type.ALBEDO));
-        //box.getComponent(MeshRenderer.class).material.albedo = new Texture(FileUtils.load("spain.jpg"));
-        
+
+        suzanne.getComponent(MeshRenderer.class).material = spainMaterial;
         GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(-10, 0, 0)));
         suzanne2.addComponent(MeshRenderer.class);
         suzanne2.addComponent(SuzanneComponent.class);

@@ -63,20 +63,20 @@ public class Renderer {
                 // Set the model matrix
                 Matrix4f modelMatrix = gameObject.transform.getTransformationMatrix();
                 shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
-                
+
                 Material material = meshRenderer.material;
-                if (material.albedo != null) {
-                    GL13.glActiveTexture(GL13.GL_TEXTURE0);
-                    material.albedo.bind(0);
-                    shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
-                }
-                
+                GL13.glActiveTexture(GL13.GL_TEXTURE0);
+                material.albedo.bind(0);
+                shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
+
+                System.out.println(material);
+
                 // Render the mesh
                 meshRenderer.mesh.render();
                 
                 // Unbind the texture after rendering
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
             }
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         }
         
     }
