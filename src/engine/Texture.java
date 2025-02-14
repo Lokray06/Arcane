@@ -2,6 +2,7 @@ package engine;
 
 import org.joml.Vector3d;
 import org.joml.Vector3i;
+import org.joml.Vector4i;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -22,7 +23,7 @@ public class Texture {
     private int textureID = 0; // 0 means not yet initialized
     private String path;
     private Type type;
-    private Vector3i rgb;
+    private Vector4i rgba;
     private boolean loaded = false; // Flag to track if the texture has been loaded
 
     public Texture(String path) {
@@ -33,42 +34,51 @@ public class Texture {
         this.type = type;
     }
 
+    public Texture(Vector4i rgba)
+    {
+        this.rgba = rgba;
+    }
     public Texture(Vector3i rgb)
     {
-        this.rgb = rgb;
+        this.rgba = new Vector4i(rgb.x, rgb.y, rgb.z, 255);
     }
 
-    private void createTexture(Vector3i rgb)
+    private void createTexture(Vector4i rgba)
     {
-        int r = rgb.x;
-        int g = rgb.y;
-        int b = rgb.z;
-        int a = 255; // Full opacity
-
+        int r = rgba.x;
+        int g = rgba.y;
+        int b = rgba.z;
+        int a = rgba.w;
+        
         this.textureID = GL11.glGenTextures();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textureID);
-
+        
         // Create a ByteBuffer and fill it with the RGBA values
         ByteBuffer pixel = BufferUtils.createByteBuffer(4);
         pixel.put((byte) r).put((byte) g).put((byte) b).put((byte) a);
         pixel.flip(); // Make sure the buffer is ready to be read
-
+        
         // Upload the texture data to OpenGL
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, 1, 1, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixel);
-
+        
         // Set the texture parameters
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-
+        
         // Unbind the texture
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-
+        
         this.loaded = true;
+    }
+    
+    private void createTexture(Vector3i rgb)
+    {
+        createTexture(new Vector4i(rgb.x, rgb.y, rgb.z, 255));
     }
 
 
-    private void loadTexture(String path) {
-        System.out.println("Loading texture: " + path);
+    private void loadTexture(String path)
+    {
         try (var stack = stackPush()) {
             IntBuffer width = stack.mallocInt(1);
             IntBuffer height = stack.mallocInt(1);
@@ -126,8 +136,8 @@ public class Texture {
                 loadTexture(path);
             } else if (type != null) {
                 createDefaultTexture(type);
-            } else if (rgb != null) {
-                createTexture(rgb); // This line might not be executing properly
+            } else if (rgba != null) {
+                createTexture(rgba); // This line might not be executing properly
                 loaded = true;
             }
         }
@@ -160,8 +170,8 @@ public class Texture {
             return path;
         else if (type != null)
             return "Default " + type + " texture";
-        else if(rgb != null)
-            return ""+rgb;
+        else if(rgba != null)
+            return ""+rgba;
         return "Something is wrong with the texture";
     }
 }

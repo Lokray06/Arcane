@@ -1,7 +1,9 @@
 package test;
 
 import engine.Component;
+import engine.GameObject;
 import engine.Input;
+import org.joml.Vector3f;
 
 public class SuzanneComponent extends Component {
     private long lastUpdateTime = System.nanoTime(); // Store the last update time
@@ -22,6 +24,11 @@ public class SuzanneComponent extends Component {
         
         // Rotate the object
         gameObject.transform.rotation.y += 0.02f;
+        if(!gameObject.children.isEmpty())
+        {
+            GameObject child = gameObject.children.getFirst();
+            System.out.println(child.transform);
+        }
         
         // Handle movement
         if (Input.getKey("left")) {

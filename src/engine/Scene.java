@@ -24,12 +24,20 @@ public class Scene
     // Add a GameObject to the scene
     public void addGameObject(GameObject gameObject)
     {
+        // Only add the object if it has no parent (i.e. it’s a top-level object)
+        if(gameObject.parent != null)
+        {
+            System.out.println("Warning: GameObject '" + gameObject.getName() + "' already has a parent and will not be added as a top-level object.");
+            return;
+        }
+        
         gameObjects.add(gameObject);
-        // If it's not the root object, make it a child of the root
+        
+        // If it's not the root object, automatically set its parent to the root and add it as a child.
         if(gameObject != rootGameObject)
         {
             gameObject.parent = rootGameObject;
-            rootGameObject.addChild(gameObject); // Ensure it's added to root's children list
+            rootGameObject.addChild(gameObject);
         }
     }
     
@@ -72,42 +80,6 @@ public class Scene
     public String getName()
     {
         return name;
-    }
-    
-    // Call start() for all components in the scene
-    public void start()
-    {
-        for(GameObject gameObject : gameObjects)
-        {
-            for(Component component : gameObject.getComponents())
-            {
-                component.start();
-            }
-        }
-    }
-    
-    //Call fixedUpdate for all the components in the scene
-    public void fixedUpdate()
-    {
-        for(GameObject gameObject : gameObjects)
-        {
-            for(Component component : gameObject.getComponents())
-            {
-                component.fixedUpdate();
-            }
-        }
-    }
-    
-    // Call update() for all components in the scene
-    public void update()
-    {
-        for(GameObject gameObject : gameObjects)
-        {
-            for(Component component : gameObject.getComponents())
-            {
-                component.update();
-            }
-        }
     }
     
     // Optional: Display the scene’s GameObjects in a readable format

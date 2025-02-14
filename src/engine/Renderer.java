@@ -34,8 +34,6 @@ public class Renderer {
         String vertexSourcePath = Engine.shadersPath.concat("vertex.glsl");
         String fragmentSourcePath = Engine.shadersPath.concat("fragment.glsl");
         
-        System.out.println(vertexSourcePath);
-        
         vertexSource = FileUtils.loadFileAsString(vertexSourcePath);
         fragmentSource = FileUtils.loadFileAsString(fragmentSourcePath);
         
@@ -68,7 +66,6 @@ public class Renderer {
 
                 Material material = meshRenderer.material;
                 GL13.glActiveTexture(GL13.GL_TEXTURE0);
-                System.out.println(material);
                 material.albedo.bind(0);
                 shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
 

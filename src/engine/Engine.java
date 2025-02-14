@@ -2,6 +2,7 @@ package engine;
 
 import engine.utils.FileUtils;
 import engine.utils.Logger;
+import engine.utils.TransformManager;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 
@@ -105,6 +106,7 @@ public class Engine {
             // Process input and update game logic (variable timestep update)
             Input.update();
             update();
+            TransformManager.updateTransforms(activeScene.rootGameObject);
 
             // Accumulate time for fixed updates
             accumulator += frameTime;
@@ -162,6 +164,7 @@ public class Engine {
 
     private static void update() {
         updateCount++;
+        //Logger.logStuff();
         callsOfUpdateLastSecond++; // Increment update counter for performance stats
         if (activeScene != null) {
             GameObject root = activeScene.rootGameObject;

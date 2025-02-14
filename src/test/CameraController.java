@@ -41,18 +41,18 @@ public class CameraController extends Component
             }
             if(Input.getKey("a"))
             {
-                gameObject.transform.position.add(right.mul(moveSpeed));
+                gameObject.transform.position.add(right.mul(-moveSpeed));
             }
             if(Input.getKey("d"))
             {
-                gameObject.transform.position.add(right.mul(-moveSpeed));
+                gameObject.transform.position.add(right.mul(moveSpeed));
             }
 
             // Mouse look
             float mouseDeltaX = (float) Input.getMouseDeltaX();
             float mouseDeltaY = (float) Input.getMouseDeltaY();
 
-            rotationX += mouseDeltaY * sensitivity; // Pitch
+            rotationX += -mouseDeltaY * sensitivity; // Pitch
             rotationY += -mouseDeltaX * sensitivity; // Yaw
 
             // Clamp pitch to avoid flipping
