@@ -2,24 +2,26 @@ package test;
 
 import engine.Component;
 import engine.Input;
+import engine.Time;
 import org.joml.Vector3f;
 
 public class CameraController extends Component
 {
-    public float moveSpeed = 0.15f;
+    public float moveSpeed = 5;
     public float sensitivity = 0.005f;
-    
+
     private float rotationX = 0, rotationY = 0;
-    
+
     @Override
-    public void fixedUpdate()
+    public void update()
     {
+        moveSpeed = (float) (5 * Time.deltaTime);
         if(GameStuff.inGame)
         {
             Vector3f forward = gameObject.transform.getForward();
             forward.y = 0;
             Vector3f right = gameObject.transform.getRight();
-            
+
             // Movement controls
             if(Input.getKey("space"))
             {
@@ -45,17 +47,17 @@ public class CameraController extends Component
             {
                 gameObject.transform.position.add(right.mul(-moveSpeed));
             }
-            
+
             // Mouse look
             float mouseDeltaX = (float) Input.getMouseDeltaX();
             float mouseDeltaY = (float) Input.getMouseDeltaY();
-            
+
             rotationX += mouseDeltaY * sensitivity; // Pitch
             rotationY += -mouseDeltaX * sensitivity; // Yaw
-            
+
             // Clamp pitch to avoid flipping
             rotationX = Math.max(-89f, Math.min(89f, rotationX));
-            
+
             // Apply rotation using quaternion-based method
             gameObject.transform.rotation.set(0, rotationY, 0);
             gameObject.transform.rotate(new Vector3f(1, 0, 0), rotationX);

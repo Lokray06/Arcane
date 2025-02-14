@@ -13,26 +13,26 @@ public class Main
 {
     public static void main(String[] args)
     {
-        String meshPath = "C:\\Users\\Juanpa\\Documents\\suzanne.obj";
-        String meshPath1 = "C:\\Users\\Juanpa\\Documents\\box.obj";
-        Mesh suzanneMesh = new Mesh(meshPath);
-        Mesh boxMesh = new Mesh(meshPath1);
-        
-        
-        GameObject floor = new GameObject("Floor", new Transform(new Vector3f( 0,-52, 0), new Vector3f(50)));
-        floor.addComponent(MeshRenderer.class);
-        floor.getComponent(MeshRenderer.class).mesh = boxMesh;
-        
+        String meshPath = FileUtils.load("box.obj");
+        String meshPath1 = FileUtils.load("suzanne.obj");
+        Mesh suzanneMesh = new Mesh(meshPath1);
+        Mesh boxMesh = new Mesh(meshPath);
+
+
         GameObject suzanne = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(0.1f)));
         suzanne.addComponent(MeshRenderer.class);
         suzanne.addComponent(SuzanneComponent.class);
         suzanne.getComponent(MeshRenderer.class).mesh = suzanneMesh;
-        
+
+        GameObject floor = new GameObject("Floor", new Transform(new Vector3f( 0,-52, 0), new Vector3f(50)));
+        floor.addComponent(MeshRenderer.class);
+        floor.getComponent(MeshRenderer.class).mesh = boxMesh;
+
         GameObject box = new GameObject("box", new Transform(new Vector3f(0, 0, 10)));
         box.addComponent(MeshRenderer.class);
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
-        box.addComponent(new Texture(Texture.Type.ALBEDO));
+        //box.addComponent(new Texture(Texture.Type.ALBEDO));
         //box.getComponent(MeshRenderer.class).material.albedo = new Texture(FileUtils.load("spain.jpg"));
         
         GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(-10, 0, 0)));
