@@ -5,6 +5,8 @@ import engine.components.MeshRenderer;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.system.MemoryStack;
@@ -66,17 +68,16 @@ public class Renderer {
 
                 Material material = meshRenderer.material;
                 GL13.glActiveTexture(GL13.GL_TEXTURE0);
+                System.out.println(material);
                 material.albedo.bind(0);
                 shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
-
-                System.out.println(material);
 
                 // Render the mesh
                 meshRenderer.mesh.render();
                 
                 // Unbind the texture after rendering
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
             }
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         }
         
     }

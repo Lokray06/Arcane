@@ -1,5 +1,7 @@
 package engine;
 
+import org.joml.Vector3d;
+import org.joml.Vector3i;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -20,6 +22,7 @@ public class Texture {
     private int textureID = 0; // 0 means not yet initialized
     private String path;
     private Type type;
+    private Vector3i rgb;
     private boolean loaded = false; // Flag to track if the texture has been loaded
 
     public Texture(String path) {
@@ -29,6 +32,40 @@ public class Texture {
     public Texture(Type type) {
         this.type = type;
     }
+
+    public Texture(Vector3i rgb)
+    {
+        this.rgb = rgb;
+    }
+
+    private void createTexture(Vector3i rgb)
+    {
+        int r = rgb.x;
+        int g = rgb.y;
+        int b = rgb.z;
+        int a = 255; // Full opacity
+
+        this.textureID = GL11.glGenTextures();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textureID);
+
+        // Create a ByteBuffer and fill it with the RGBA values
+        ByteBuffer pixel = BufferUtils.createByteBuffer(4);
+        pixel.put((byte) r).put((byte) g).put((byte) b).put((byte) a);
+        pixel.flip(); // Make sure the buffer is ready to be read
+
+        // Upload the texture data to OpenGL
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, 1, 1, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixel);
+
+        // Set the texture parameters
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+
+        // Unbind the texture
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+
+        this.loaded = true;
+    }
+
 
     private void loadTexture(String path) {
         System.out.println("Loading texture: " + path);
@@ -89,9 +126,13 @@ public class Texture {
                 loadTexture(path);
             } else if (type != null) {
                 createDefaultTexture(type);
+            } else if (rgb != null) {
+                createTexture(rgb); // This line might not be executing properly
+                loaded = true;
             }
         }
     }
+
 
     public void bind(int unit)
     {
@@ -115,6 +156,12 @@ public class Texture {
 
     @Override
     public String toString() {
-        return path == null ? "Default " + type.name() + " texture" : path;
+        if(path != null)
+            return path;
+        else if (type != null)
+            return "Default " + type + " texture";
+        else if(rgb != null)
+            return ""+rgb;
+        return "Something is wrong with the texture";
     }
 }
