@@ -128,7 +128,7 @@ public class Engine {
 
             // Log performance stats every second
             if (System.nanoTime() - lastSecondTime >= 1_000_000_000L) {
-                //Logger.logPerformance(framesRenderedLastSecond, callsOfUpdateLastSecond, callsOfFixedUpdateLastSecond, frameCount, uptime);
+                Logger.logPerformance(framesRenderedLastSecond, callsOfUpdateLastSecond, callsOfFixedUpdateLastSecond, frameCount, uptime);
                 // Reset performance counters for the next second
                 framesRenderedLastSecond = 0;
                 callsOfUpdateLastSecond = 0;

@@ -52,11 +52,11 @@ public class Main
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
         box.getComponent(MeshRenderer.class).material = prototypeMaterial;
 
-        GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(-10, 0, 0)));
+        GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(10, 0, 10)));
         suzanne2.addComponent(MeshRenderer.class);
         suzanne2.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne2.getComponent(MeshRenderer.class).material = greenMaterial;
-//        box.addChild(suzanne2);
+        box.addChild(suzanne2);
 
         GameObject suzanne3 = new GameObject("Suzanne3", new Transform(new Vector3f(0, 0, -10), new Vector3f(2f)));
         suzanne3.addComponent(MeshRenderer.class);

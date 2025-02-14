@@ -47,14 +47,15 @@ public class GameObject
     }
     
     // Add a child to this GameObject
-    public void addChild(GameObject child)
-    {
-        if(child != null)
-        {
-            child.parent = this; // Set this as the parent of the child
+    public void addChild(GameObject child) {
+        if(child != null) {
+            child.parent = this;
+            // IMPORTANT: Link the child's transform to its parent's transform
+            child.transform.setParent(this.transform);
             children.add(child);
         }
     }
+    
     
     // Remove a child
     public void removeChild(GameObject child)

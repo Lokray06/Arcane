@@ -3,6 +3,7 @@ package test;
 import engine.Component;
 import engine.GameObject;
 import engine.Input;
+import engine.Time;
 import org.joml.Vector3f;
 
 public class SuzanneComponent extends Component {
@@ -27,15 +28,14 @@ public class SuzanneComponent extends Component {
         if(!gameObject.children.isEmpty())
         {
             GameObject child = gameObject.children.getFirst();
-            System.out.println(child.transform);
         }
         
         // Handle movement
         if (Input.getKey("left")) {
-            gameObject.transform.position.x--;
+            transform.move(transform.left, 0.2f);
         }
         if (Input.getKey("right")) {
-            gameObject.transform.position.x++;
+            transform.move(transform.right, 0.2f);
         }
     }
 }

@@ -38,13 +38,13 @@ public class Camera extends Component
     {
         // Create a copy of the camera's position so the original isn't modified
         Vector3f target = new Vector3f(gameObject.transform.position)
-                .add(gameObject.transform.getForward());
+                .add(gameObject.transform.front());
         
         // Update the view matrix using the camera's position, the target, and the up vector
         viewMatrix = new Matrix4f().lookAt(
                 gameObject.transform.position,  // Camera position
                 target,                         // Target position (camera's position + forward)
-                gameObject.transform.getUp()    // Up vector
+                gameObject.transform.up()   // Up vector
         );
     }
     

@@ -1,7 +1,6 @@
 package engine.components;
 
 import engine.Component;
-import engine.Engine;
 import engine.utils.Logger;
 import org.joml.*;
 
@@ -43,6 +42,13 @@ public class Transform extends Component
     // Method to set the parent transform
     public void setParent(Transform parent) {
         this.parent = parent;
+        updateGlobalTransforms();
+    }
+    
+    public void move(Vector3f direction, float distance)
+    {
+        Vector3f distanceToMove = new Vector3f(direction.x * distance, direction.y * distance, direction.z * distance);
+        position.add(distanceToMove);
     }
     
     /**
@@ -51,19 +57,30 @@ public class Transform extends Component
      */
     public void updateGlobalTransforms() {
         if (parent != null) {
-            // Global position: parent's global position + local position
-            globalPosition.set(parent.globalPosition).add(position);
+            // First, scale the local position by the parent's global scale.
+            // This applies a component-wise multiplication.
+            Vector3f scaledLocalPosition = new Vector3f(position).mul(parent.globalScale);
             
-            // Global rotation: parent's global rotation * local rotation (in quaternion form)
-            Quaternionf parentRotation = new Quaternionf().rotateXYZ(parent.globalRotation.x, parent.globalRotation.y, parent.globalRotation.z);
-            Quaternionf localRotation = new Quaternionf().rotateXYZ(rotation.x, rotation.y, rotation.z);
-            Quaternionf globalQuat = parentRotation.mul(localRotation);
+            // Next, rotate the scaled local position by the parent's global rotation.
+            Quaternionf parentQuat = new Quaternionf().rotateXYZ(
+                    parent.globalRotation.x,
+                    parent.globalRotation.y,
+                    parent.globalRotation.z
+            );
+            Vector3f rotatedPosition = parentQuat.transform(scaledLocalPosition, new Vector3f());
+            
+            // Now, the global position is the parent's global position plus the rotated (and scaled) local offset.
+            globalPosition.set(parent.globalPosition).add(rotatedPosition);
+            
+            // Combine rotations: global rotation = parent's rotation * local rotation.
+            Quaternionf localQuat = new Quaternionf().rotateXYZ(rotation.x, rotation.y, rotation.z);
+            Quaternionf globalQuat = parentQuat.mul(localQuat, new Quaternionf());
             globalRotation.set(globalQuat.getEulerAnglesXYZ(new Vector3f()));
             
-            // Global scale: parent's global scale * local scale
+            // The global scale is computed component-wise.
             globalScale.set(parent.globalScale).mul(scale);
         } else {
-            // If there is no parent, the local transform is the global transform
+            // No parent means the local transform is the global transform.
             globalPosition.set(position);
             globalRotation.set(rotation);
             globalScale.set(scale);
@@ -97,40 +114,64 @@ public class Transform extends Component
      * Creates a transformation matrix based on position, rotation, and scaling.
      * @return The transformation matrix
      */
-    public Matrix4f getTransformationMatrix() {
-        Matrix4f translationMatrix = new Matrix4f().translation(position);
-        Matrix4f rotationMatrix = new Matrix4f().rotateXYZ(rotation.x, rotation.y, rotation.z);
-        Matrix4f scaleMatrix = new Matrix4f().scaling(scale);
+    public Matrix4f getModelMatrix() {
+        Matrix4f translationMatrix = new Matrix4f().translation(globalPosition);
+        Matrix4f rotationMatrix = new Matrix4f().rotateXYZ(globalRotation.x, globalRotation.y, globalRotation.z);
+        Matrix4f scaleMatrix = new Matrix4f().scaling(globalScale);
         
         // First, scale, then rotate, then translate
         return translationMatrix.mul(rotationMatrix).mul(scaleMatrix);
     }
     
+    //Static directions
+    public Vector3f right = new Vector3f(1,0,0);
+    public Vector3f left =  new Vector3f(-1,0,0);
+    public Vector3f up =    new Vector3f(0,1,0);
+    public Vector3f down =  new Vector3f(0,-1,0);
+    public Vector3f front = new Vector3f(0,0,1);
+    public Vector3f back =  new Vector3f(0,0,-1);
+    
     // Method to retrieve the transform's Up vector
-    public Vector3f getUp()
+    public Vector3f up()
     {
         Matrix3f rotationMatrix = new Matrix3f().rotateXYZ(rotation.x, rotation.y, rotation.z);
         Vector3f up = new Vector3f(0, 1, 0);
         rotationMatrix.transform(up);
         return up.normalize();
     }
+    // Method to retrieve the transform's Up vector
+    public Vector3f down()
+    {
+        return up().mul(-1);
+    }
     
     // Method to retrieve the transform's Right vector
-    public Vector3f getRight()
+    public Vector3f right()
     {
         Matrix3f rotationMatrix = new Matrix3f().rotateXYZ(rotation.x, rotation.y, rotation.z);
         Vector3f right = new Vector3f(1, 0, 0);
         rotationMatrix.transform(right);
         return right.normalize();
     }
+    // Method to retrieve the transform's Up vector
+    public Vector3f left()
+    {
+        return right().mul(-1);
+    }
     
     // Method to retrieve the transform's Forward vector
-    public Vector3f getForward()
+    public Vector3f front()
     {
         Matrix3f rotationMatrix = new Matrix3f().rotateXYZ(rotation.x, rotation.y, rotation.z);
         Vector3f forward = new Vector3f(0, 0, -1);
         rotationMatrix.transform(forward);
         return forward.normalize();
+    }
+    
+    // Method to retrieve the transform's Up vector
+    public Vector3f back()
+    {
+        return right().mul(-1);
     }
     
     @Override

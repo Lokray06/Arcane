@@ -18,9 +18,9 @@ public class CameraController extends Component
         moveSpeed = (float) (5 * Time.deltaTime);
         if(GameStuff.inGame)
         {
-            Vector3f forward = gameObject.transform.getForward();
+            Vector3f forward = gameObject.transform.front();
             forward.y = 0;
-            Vector3f right = gameObject.transform.getRight();
+            Vector3f right = gameObject.transform.right();
 
             // Movement controls
             if(Input.getKey("space"))

@@ -5,8 +5,6 @@ import engine.components.MeshRenderer;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
-import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.system.MemoryStack;
@@ -56,27 +54,38 @@ public class Renderer {
             shaderProgram.setUniformMat4(VIEW_UNIFORM, mainCamera.viewMatrix);
         }
         
-        // Render the meshes
-        for (GameObject gameObject : activeScene.getGameObjects()) {
-            MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
-            if (meshRenderer != null && meshRenderer.mesh != null) {
-                // Set the model matrix
-                Matrix4f modelMatrix = gameObject.transform.getTransformationMatrix();
-                shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
-
-                Material material = meshRenderer.material;
-                GL13.glActiveTexture(GL13.GL_TEXTURE0);
-                material.albedo.bind(0);
-                shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
-
-                // Render the mesh
-                meshRenderer.mesh.render();
-                
-                // Unbind the texture after rendering
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-            }
+        // Start recursive rendering from the scene's root.
+        if (activeScene.rootGameObject != null) {
+            renderRecursive(activeScene.rootGameObject);
+        }
+    }
+    
+    /**
+     * Recursively renders a GameObject and its children.
+     */
+    private static void renderRecursive(GameObject gameObject) {
+        MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
+        if (meshRenderer != null && meshRenderer.mesh != null) {
+            // Use the global transform to build the model matrix.
+            Matrix4f modelMatrix = gameObject.transform.getModelMatrix();
+            shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
+            
+            Material material = meshRenderer.material;
+            GL13.glActiveTexture(GL13.GL_TEXTURE0);
+            material.albedo.bind(0);
+            shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
+            
+            // Render the mesh.
+            meshRenderer.mesh.render();
+            
+            // Unbind texture.
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         }
         
+        // Recursively render all child game objects.
+        for (GameObject child : gameObject.children) {
+            renderRecursive(child);
+        }
     }
     
     private static Matrix4f getProjectionMatrix(Camera camera) {
