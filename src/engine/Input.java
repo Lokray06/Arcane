@@ -107,7 +107,7 @@ public class Input {
     public static void setCursorLocked(boolean locked) {
         cursorLocked = locked;
         if (locked) {
-            glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN); // Hide the cursor
+            glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock & hide the cursor
         } else {
             glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Show the cursor
         }

@@ -5,6 +5,8 @@ import engine.components.MeshRenderer;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.system.MemoryStack;
@@ -63,15 +65,13 @@ public class Renderer {
                 // Set the model matrix
                 Matrix4f modelMatrix = gameObject.transform.getTransformationMatrix();
                 shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
-                
+
                 Material material = meshRenderer.material;
-                System.out.println(gameObject + "" + material);
-                if (material.albedo != null) {
-                    GL13.glActiveTexture(GL13.GL_TEXTURE0);
-                    material.albedo.bind(0);
-                    shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
-                }
-                
+                GL13.glActiveTexture(GL13.GL_TEXTURE0);
+                System.out.println(material);
+                material.albedo.bind(0);
+                shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
+
                 // Render the mesh
                 meshRenderer.mesh.render();
                 

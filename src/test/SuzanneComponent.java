@@ -21,7 +21,7 @@ public class SuzanneComponent extends Component {
         //System.out.println("Delta time: " + deltaTime + " ms");
         
         // Rotate the object
-        gameObject.transform.rotation.y += 0.05f;
+        gameObject.transform.rotation.y += 0.02f;
         
         // Handle movement
         if (Input.getKey("left")) {

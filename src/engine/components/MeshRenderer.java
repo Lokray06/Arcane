@@ -7,5 +7,5 @@ import engine.Mesh;
 public class MeshRenderer extends Component
 {
     public Mesh mesh;
-    public Material material = new Material();
+    public Material material = Material.empty;
 }

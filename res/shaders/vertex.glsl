@@ -16,7 +16,7 @@ void main() {
     vec4 pos = vec4(inPosition, 1.0);
     vec4 worldPos = vec4(model * vec4(inPosition, 1.0));
     fragPos = worldPos.xyz;
-    fragNormal = mat3(transpose(inverse(model))) * inNormal;
+    fragNormal = normalize(mat3(model) * inNormal);
     fragTexCoord = inTexCoord;
     gl_Position = projection * view * worldPos;
 }

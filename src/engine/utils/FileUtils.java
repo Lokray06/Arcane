@@ -8,14 +8,19 @@ import java.util.Objects;
 
 public class FileUtils
 {
-    public static String resourcesPath = "C:\\dev\\Arcane\\src\\res\\";
+    public static String resourcesPath = "res";
     
     
     public static String load(String fileName) {
         File root = new File(resourcesPath);
         return searchFile(root, fileName);
     }
-    
+
+    public static String getResPath() {
+        return new File(resourcesPath).getAbsolutePath();
+    }
+
+
     private static String searchFile(File dir, String fileName) {
         if (!dir.exists() || !dir.isDirectory()) return null;
         

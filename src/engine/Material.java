@@ -10,18 +10,25 @@ public class Material
     
     public float specular = 0;
     public float metallic = 0;
-    
+
     //Default empty material
-    public Material()
-    {
-        this.albedo = new Texture(Type.ALBEDO);
-        this.normal = new Texture(Type.NORMAL);
-        this.roughness = new Texture(Type.ROUGHNESS);
-    }
-    
+    public static Material empty = new Material
+    (
+        new Texture(Type.ALBEDO),
+        new Texture(Type.NORMAL),
+        new Texture(Type.ROUGHNESS)
+    );
+
     public Material(Texture albedo)
     {
-        this.albedo = albedo;
+        if(albedo != null)
+        {
+            this.albedo = albedo;
+        }
+        else
+        {
+            System.err.println("Albedo Texture is null");
+        }
     }
     
     public Material(Texture albedo, Texture normal)

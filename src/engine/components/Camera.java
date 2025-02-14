@@ -13,7 +13,7 @@ public class Camera extends Component
     public boolean isOrthographic = false;
     public boolean isActive = false;
     public float near = 0.01f;
-    public float far = 1000;
+    public float far = 10000;
     
     public Camera(float fov)
     {
