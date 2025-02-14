@@ -2,6 +2,7 @@ package test;
 
 import engine.*;
 import engine.components.Camera;
+import engine.components.LightDirectional;
 import engine.components.MeshRenderer;
 import engine.components.Transform;
 import engine.utils.FileUtils;
@@ -79,6 +80,9 @@ public class Main
         scene.addGameObject(suzanne2);
         scene.addGameObject(suzanne3);
         scene.addGameObject(camera);
+        
+        LightDirectional lightDirectional = new LightDirectional();
+        scene.rootGameObject.addComponent(lightDirectional);
         
         Engine.activeScene = scene;
         Engine.init();
