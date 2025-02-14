@@ -1,13 +1,18 @@
 package engine;
 
 import engine.components.Camera;
+import engine.components.LightDirectional;
 import engine.components.MeshRenderer;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.system.MemoryStack;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Renderer {
     
@@ -19,10 +24,8 @@ public class Renderer {
     private static final String VIEW_UNIFORM = "view";
     private static final String PROJECTION_UNIFORM = "projection";
     
-    // Material texture uniforms (make sure your shader uses these names)
+    // Material texture uniform (make sure your shader uses these names)
     private static final String ALBEDO_UNIFORM = "uAlbedo";
-    private static final String NORMAL_UNIFORM = "uNormal";
-    private static final String ROUGHNESS_UNIFORM = "uRoughness";
     
     // Call this once during initialization
     public static void init() {
@@ -48,13 +51,37 @@ public class Renderer {
         // Activate our shader program.
         shaderProgram.use();
         
-        // Set projection and view matrices from the camera.
+        // Set projection, view matrices and view position from the camera.
         try (MemoryStack stack = MemoryStack.stackPush()) {
             shaderProgram.setUniformMat4(PROJECTION_UNIFORM, getProjectionMatrix(mainCamera));
             shaderProgram.setUniformMat4(VIEW_UNIFORM, mainCamera.viewMatrix);
+            // Assume the Camera component is attached to a GameObject with a valid transform
+            shaderProgram.setUniform("viewPos", mainCamera.gameObject.transform.globalPosition);
         }
         
-        // Start recursive rendering from the scene's root.
+        // Collect all directional lights in the scene.
+        List<LightDirectional> directionalLights = new ArrayList<>();
+        if (activeScene.rootGameObject != null) {
+            collectDirectionalLights(activeScene.rootGameObject, directionalLights);
+        }
+        
+        // Pass the number of directional lights to the shader.
+        shaderProgram.setUniform("numDirectionalLights", directionalLights.size());
+        
+        // For each directional light, pass its properties.
+        // (Limit to MAX_DIR_LIGHTS if needed; here we assume a shader-defined max of 10.)
+        int maxLights = 10;
+        for (int i = 0; i < directionalLights.size() && i < maxLights; i++) {
+            LightDirectional light = directionalLights.get(i);
+            // Compute the light's direction from its transform.
+            // Here, we assume the light's direction is the negative of its "front" vector.
+            Vector3f direction = new Vector3f(light.gameObject.transform.front()).negate();
+            shaderProgram.setUniform("directionalLights[" + i + "].direction", direction);
+            shaderProgram.setUniform("directionalLights[" + i + "].color", light.color);
+            shaderProgram.setUniform("directionalLights[" + i + "].strength", light.strength);
+        }
+        
+        // Now render all objects recursively.
         if (activeScene.rootGameObject != null) {
             renderRecursive(activeScene.rootGameObject);
         }
@@ -85,6 +112,19 @@ public class Renderer {
         // Recursively render all child game objects.
         for (GameObject child : gameObject.children) {
             renderRecursive(child);
+        }
+    }
+    
+    /**
+     * Recursively collects all LightDirectional components in the scene.
+     */
+    private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {
+        LightDirectional light = gameObject.getComponent(LightDirectional.class);
+        if (light != null) {
+            lights.add(light);
+        }
+        for (GameObject child : gameObject.children) {
+            collectDirectionalLights(child, lights);
         }
     }
     

@@ -1,6 +1,7 @@
 package engine.utils;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.FloatBuffer;
@@ -60,6 +61,20 @@ public class ShaderProgram {
         int location = glGetUniformLocation(programId, name);
         glUniform1i(location, value);
     }
+    
+    public void setUniform(String name, float value) {
+        int location = glGetUniformLocation(programId, name);
+        glUniform1f(location, value);
+    }
+    
+    public void setUniform(String name, Vector3f value) {
+        int location = glGetUniformLocation(programId, name);
+        if(location != -1)
+        {
+            glUniform3f(location, value.x, value.y, value.z);
+        }
+    }
+    
     
     public void setUniformMat4(String name, Matrix4f matrix) {
         int location = getUniformLocation(name);
