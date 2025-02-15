@@ -15,7 +15,6 @@ public class CameraController extends Component
     @Override
     public void update()
     {
-        moveSpeed = (float) (10 * Time.deltaTime);
         if(GameStuff.inGame)
         {
             Vector3f forward = gameObject.transform.front();
@@ -23,6 +22,16 @@ public class CameraController extends Component
             Vector3f right = gameObject.transform.right();
 
             // Movement controls
+            if(Input.getKey("ctrl"))
+            {
+                moveSpeed = 20;
+            }
+            else
+            {
+                moveSpeed =10;
+            }
+            moveSpeed *= Time.deltaTime;
+            
             if(Input.getKey("space"))
             {
                 gameObject.transform.position.y += moveSpeed;
@@ -31,6 +40,7 @@ public class CameraController extends Component
             {
                 gameObject.transform.position.y -= moveSpeed;
             }
+            
             if(Input.getKey("w"))
             {
                 gameObject.transform.position.add(forward.mul(moveSpeed));
@@ -47,7 +57,7 @@ public class CameraController extends Component
             {
                 gameObject.transform.position.add(right.mul(moveSpeed));
             }
-
+            
             // Mouse look
             float mouseDeltaX = (float) Input.getMouseDeltaX();
             float mouseDeltaY = (float) Input.getMouseDeltaY();
