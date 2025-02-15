@@ -133,4 +133,29 @@ public class GameObject
         }
         return sb.toString();
     }
+    
+    public static <T extends Component> GameObject getGameObjectWithComponent(Class<T> componentClass)
+    {
+        for(GameObject gameObject : Engine.activeScene.getGameObjects())
+        {
+            Component component = gameObject.getComponent(componentClass);
+            if(component != null)
+            {
+                return gameObject;
+            }
+            else if(!gameObject.children.isEmpty())
+            {
+                for(GameObject child : gameObject.children) // Fixed this line
+                {
+                    GameObject result = child.getGameObjectWithComponent(componentClass); // Corrected recursive call
+                    if(result != null)
+                    {
+                        return result;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
 }

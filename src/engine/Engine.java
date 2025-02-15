@@ -3,6 +3,7 @@ package engine;
 import engine.utils.FileUtils;
 import engine.utils.Logger;
 import engine.utils.TransformManager;
+import engine.utils.debug.DebugRenderer;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 
@@ -40,10 +41,12 @@ public class Engine {
         GL.createCapabilities();
 
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-
+        glDepthFunc(GL_LEQUAL); // Allow depth values equal to the far plane
+        
+        
         // Initialize our modern shader-based renderer
         Renderer.init();
+        DebugRenderer.init();
 
         // Initialize input handling using GLFW
         Input.init(window, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -128,7 +131,7 @@ public class Engine {
 
             // Log performance stats every second
             if (System.nanoTime() - lastSecondTime >= 1_000_000_000L) {
-                Logger.logPerformance(framesRenderedLastSecond, callsOfUpdateLastSecond, callsOfFixedUpdateLastSecond, frameCount, uptime);
+                //Logger.logPerformance(framesRenderedLastSecond, callsOfUpdateLastSecond, callsOfFixedUpdateLastSecond, frameCount, uptime);
                 // Reset performance counters for the next second
                 framesRenderedLastSecond = 0;
                 callsOfUpdateLastSecond = 0;
@@ -149,6 +152,7 @@ public class Engine {
         if (activeScene != null) {
             Renderer.render(activeScene);
         }
+        //DebugRenderer.render(shadowMap.depthMap);
 
         glfwSwapBuffers(window);
     }

@@ -7,16 +7,19 @@ layout(location = 2) in vec2 inTexCoord;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix; // New uniform
 
 out vec2 fragTexCoord;
 out vec3 fragNormal;
 out vec3 fragPos;
+out vec4 fragPosLightSpace; // Pass light-space position to fragment shader
 
 void main() {
-    vec4 pos = vec4(inPosition, 1.0);
+    // Explicitly construct a vec4 from the multiplication result.
     vec4 worldPos = vec4(model * vec4(inPosition, 1.0));
     fragPos = worldPos.xyz;
     fragNormal = normalize(mat3(model) * inNormal);
     fragTexCoord = inTexCoord;
+    fragPosLightSpace = lightSpaceMatrix * worldPos; // Compute light-space coordinate
     gl_Position = projection * view * worldPos;
 }

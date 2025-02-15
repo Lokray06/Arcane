@@ -1,10 +1,7 @@
 package test;
 
 import engine.*;
-import engine.components.Camera;
-import engine.components.LightDirectional;
-import engine.components.MeshRenderer;
-import engine.components.Transform;
+import engine.components.*;
 import engine.utils.FileUtils;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -20,6 +17,9 @@ public class Main
         Texture spain = new Texture(FileUtils.load("spain.jpg"));
         Texture prototype = new Texture(FileUtils.load("darkTexture01.png"));
 
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"));
+        Skybox skybox = new Skybox(skyboxTexture);
+        
         Material redMaterial = new Material(red);
         Material greenMaterial = new Material(green);
         Material blueMaterial = new Material(blue);
@@ -35,11 +35,18 @@ public class Main
         Material spainMaterial = new Material(spain);
 
         GameObject floor = new GameObject("Floor");
-        floor.transform.scale = new Vector3f(1).mul(25);
+        floor.transform.scale = new Vector3f(1).mul(50);
         floor.transform.position = new Vector3f(0, -5, 0);
         floor.addComponent(MeshRenderer.class);
         floor.getComponent(MeshRenderer.class).mesh = floorMesh;
         floor.getComponent(MeshRenderer.class).material = spainMaterial;
+        
+        GameObject wall = new GameObject("Wall");
+        wall.transform.scale = new Vector3f(1).mul(50);
+        wall.transform.position = new Vector3f(0, 25, 50);
+        wall.transform.rotation = new Vector3f(90, 0, 0);
+        wall.addComponent(MeshRenderer.class);
+        wall.getComponent(MeshRenderer.class).mesh = floorMesh;
 
         GameObject suzanne = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         suzanne.addComponent(MeshRenderer.class);
@@ -72,17 +79,22 @@ public class Main
         camera.addComponent(CameraController.class);
         camera.getComponent(Camera.class).isActive = true;
         
-        scene.getRootGameObject().addComponent(GameStuff.class);
+        GameObject sun = new GameObject("Sun");
+        sun.transform.rotation.x = 90;
+        sun.addComponent(LightDirectional.class);
+        sun.addComponent(SuzanneComponent.class);
         
+        scene.getRootGameObject().addComponent(GameStuff.class);
+        scene.getRootGameObject().addComponent(skybox);
+        
+        scene.addGameObject(sun);
         scene.addGameObject(box);
         scene.addGameObject(suzanne);
         scene.addGameObject(floor);
+        scene.addGameObject(wall);
         scene.addGameObject(suzanne2);
         scene.addGameObject(suzanne3);
         scene.addGameObject(camera);
-        
-        LightDirectional lightDirectional = new LightDirectional();
-        scene.rootGameObject.addComponent(lightDirectional);
         
         Engine.activeScene = scene;
         Engine.init();

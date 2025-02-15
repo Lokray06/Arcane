@@ -1,6 +1,7 @@
 package engine.utils;
 
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
 
@@ -42,15 +43,22 @@ public class ShaderProgram {
         int compiled = glGetShaderi(shaderId, GL_COMPILE_STATUS);
         if (compiled == 0) {
             String log = glGetShaderInfoLog(shaderId);
-            throw new RuntimeException("Error compiling shader (" + (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
+            throw new RuntimeException("Error compiling shader ("
+                                       + (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
         }
         
         return shaderId;
     }
     
-    
     public void use() {
         glUseProgram(programId);
+    }
+    
+    /**
+     * Detaches the current shader program.
+     */
+    public void detach() {
+        glUseProgram(0);
     }
     
     public int getUniformLocation(String name) {
@@ -69,12 +77,10 @@ public class ShaderProgram {
     
     public void setUniform(String name, Vector3f value) {
         int location = glGetUniformLocation(programId, name);
-        if(location != -1)
-        {
+        if(location != -1) {
             glUniform3f(location, value.x, value.y, value.z);
         }
     }
-    
     
     public void setUniformMat4(String name, Matrix4f matrix) {
         int location = getUniformLocation(name);
@@ -86,5 +92,13 @@ public class ShaderProgram {
     
     public void cleanup() {
         glDeleteProgram(programId);
+    }
+    
+    public void setUniform(String name, Vector2f value)
+    {
+        int location = glGetUniformLocation(programId, name);
+        if(location != -1) {
+            glUniform2f(location, value.x, value.y);
+        }
     }
 }

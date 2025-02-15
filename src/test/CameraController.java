@@ -15,7 +15,7 @@ public class CameraController extends Component
     @Override
     public void update()
     {
-        moveSpeed = (float) (5 * Time.deltaTime);
+        moveSpeed = (float) (10 * Time.deltaTime);
         if(GameStuff.inGame)
         {
             Vector3f forward = gameObject.transform.front();
