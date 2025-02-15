@@ -28,9 +28,11 @@ public class Main
         String meshPath = FileUtils.load("box.obj");
         String meshPath1 = FileUtils.load("suzanne.obj");
         String meshPath2 = FileUtils.load("plane.obj");
+        String sphereMeshPath = FileUtils.load("sphere.obj");
         Mesh suzanneMesh = new Mesh(meshPath1);
         Mesh boxMesh = new Mesh(meshPath);
         Mesh floorMesh = new Mesh(meshPath2);
+        Mesh sphereMesh = new Mesh(sphereMeshPath);
 
         Material spainMaterial = new Material(spain);
 
@@ -48,10 +50,10 @@ public class Main
         wall.addComponent(MeshRenderer.class);
         wall.getComponent(MeshRenderer.class).mesh = floorMesh;
 
-        GameObject suzanne = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
-        suzanne.addComponent(MeshRenderer.class);
-        suzanne.getComponent(MeshRenderer.class).mesh = suzanneMesh;
-        suzanne.getComponent(MeshRenderer.class).material = redMaterial;
+        GameObject sphere = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
+        sphere.addComponent(MeshRenderer.class);
+        sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
+        sphere.getComponent(MeshRenderer.class).material = redMaterial;
 
 
         GameObject box = new GameObject("box", new Transform(new Vector3f(0, 0, 10)));
@@ -89,7 +91,7 @@ public class Main
         
         scene.addGameObject(sun);
         scene.addGameObject(box);
-        scene.addGameObject(suzanne);
+        scene.addGameObject(sphere);
         scene.addGameObject(floor);
         scene.addGameObject(wall);
         scene.addGameObject(suzanne2);
