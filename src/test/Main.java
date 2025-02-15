@@ -16,6 +16,11 @@ public class Main
         Texture blue = new Texture(new Vector4i(0, 0, 255, 20));
         Texture spain = new Texture(FileUtils.load("spain.jpg"));
         Texture prototype = new Texture(FileUtils.load("darkTexture01.png"));
+        
+        Texture metalAlbedo = new Texture(FileUtils.load("1Albedo.png"));
+        Texture metalNormal = new Texture(FileUtils.load("1Normal.png"));
+        Texture metalAO = new Texture(FileUtils.load("1AO.png"));
+        Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
         CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"));
         Skybox skybox = new Skybox(skyboxTexture);
@@ -53,7 +58,7 @@ public class Main
         GameObject sphere = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         sphere.addComponent(MeshRenderer.class);
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
-        sphere.getComponent(MeshRenderer.class).material = redMaterial;
+        sphere.getComponent(MeshRenderer.class).material = metal;
 
 
         GameObject box = new GameObject("box", new Transform(new Vector3f(0, 0, 10)));
