@@ -215,10 +215,31 @@ public class Renderer {
             Matrix4f modelMatrix = gameObject.transform.getModelMatrix();
             shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
             Material material = meshRenderer.material;
-            GL13.glActiveTexture(GL_TEXTURE0);
+            
+            // --- Bind all components of the material ---
+            
+            // Bind Albedo (texture unit 0)
+            GL13.glActiveTexture(GL13.GL_TEXTURE0);
             material.albedo.bind(0);
-            shaderProgram.setUniform(ALBEDO_UNIFORM, 0);
+            shaderProgram.setUniform("uAlbedo", 0);
+            
+            // Bind Normal map (texture unit 1)
+            GL13.glActiveTexture(GL13.GL_TEXTURE1);
+            material.normal.bind(1);
+            shaderProgram.setUniform("uNormal", 1);
+            
+            // Bind Roughness map (texture unit 2)
+            GL13.glActiveTexture(GL13.GL_TEXTURE2);
+            material.roughness.bind(2);
+            shaderProgram.setUniform("uRoughness", 2);
+            
+            // Set material scalar uniforms:
+            shaderProgram.setUniform("uMetallic", material.metallic);
+            shaderProgram.setUniform("uSpecular", material.specular);
+            
+            //Send to render
             meshRenderer.mesh.render();
+            //Unbind the texture
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         }
         for (GameObject child : gameObject.children) {
