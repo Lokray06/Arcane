@@ -60,7 +60,7 @@ vec3 GetSkyboxAmbient(vec3 normal) {
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-viewDir, normal);
     vec3 ambientColor = texture(skyboxAmbient.cubemap, reflectDir).rgb;
-    return ambientColor * skyboxAmbient.strength;
+    return ambientColor * 1;
 }
 
 // ----- Function: Shadow Calculation (PCF) -----

@@ -209,8 +209,13 @@ public class Renderer {
         skybox = GameObject.getGameObjectWithComponent(Skybox.class).getComponent(Skybox.class);
         if (skybox != null && skybox.getCubeMap() != null) {
             skybox.getCubeMap().bind(GL13.GL_TEXTURE5);
+            skybox.getCubeMap().bind(5);
             shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
             shaderProgram.setUniform("skyboxAmbient.strength", 1);
+        }
+        else
+        {
+            System.err.println("Couldn't load skybox");
         }
         
         // Render all objects.

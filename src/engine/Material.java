@@ -9,10 +9,10 @@ public class Material {
     public Vector3f albedoColor = new Vector3f(1); //Multiplies the albedo map / texture
     
     public Texture normalMap; // Normal texture
-    public float normalMapStrength; // Scalar multiplier for the normal map strength
+    public float normalMapStrength = 1; // Scalar multiplier for the normal map strength
     
     public Texture metallicMap; // Metallic texture (Where is and where isn't metallic)
-    public float metallic = 1; // Scalar multiplier for the metallic map strength
+    public float metallic = 0; // Scalar multiplier for the metallic map strength
     
     public Texture roughnessMap; // Roughness texture (Where is and where isn't shiny)
     public float roughness = 0; // Scalar multiplier fot the roughness texture
