@@ -58,7 +58,7 @@ public class Main
         GameObject sphere = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         sphere.addComponent(MeshRenderer.class);
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
-        sphere.getComponent(MeshRenderer.class).material = redMaterial;
+        sphere.getComponent(MeshRenderer.class).material = metal;
         
         GameObject sphere2 = new GameObject("littleSphere", new Transform(new Vector3f(0, 0, 5)));
         sphere2.addComponent(MeshRenderer.class);

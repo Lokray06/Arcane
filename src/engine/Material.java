@@ -12,10 +12,10 @@ public class Material {
     public float normalMapStrength; // Scalar multiplier for the normal map strength
     
     public Texture metallicMap; // Metallic texture (Where is and where isn't metallic)
-    public float metallic = 1f; // Scalar multiplier for the metallic map strength
+    public float metallic = 1; // Scalar multiplier for the metallic map strength
     
     public Texture roughnessMap; // Roughness texture (Where is and where isn't shiny)
-    public float roughness = 1; // Scalar multiplier fot the roughness texture
+    public float roughness = 0; // Scalar multiplier fot the roughness texture
     
     public Texture aoMap; // AO texture
     
