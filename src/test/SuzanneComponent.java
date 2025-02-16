@@ -8,8 +8,6 @@ import org.joml.Vector3f;
 
 public class SuzanneComponent extends Component
 {
-    private long lastUpdateTime = System.nanoTime(); // Store the last update time
-    
     @Override
     public void update()
     {
@@ -18,14 +16,14 @@ public class SuzanneComponent extends Component
         {
             //gameObject.transform.rotation.x += 1f * Time.deltaTime;
         }
-        else
+        else if (gameObject.getName().equals("box"))
         {
-            gameObject.transform.rotation.y += 1f * Time.deltaTime;
-            gameObject.transform.rotation.x += 1f * Time.deltaTime;
+            gameObject.transform.rotation.y += Time.deltaTime;
         }
-        if(!gameObject.children.isEmpty())
+        
+        else if (gameObject.getName().equals("Suzanne2"))
         {
-            GameObject child = gameObject.children.getFirst();
+            gameObject.transform.rotation.x += Time.deltaTime;
         }
         
         // Handle movement

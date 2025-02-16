@@ -10,7 +10,7 @@ public class Material {
     public Texture aoMap;
     
     // These are our “scalar” parameters.
-    public float roughness = 1f; // non-metallic F₀ (typically ~0.04 for dielectrics)
+    public float roughness = 0.4f; // non-metallic F₀ (typically ~0.04 for dielectrics)
     public float metallic = 0f; // 0 = dielectric, 1 = metal
     
     // Default empty material – using default textures.

@@ -58,10 +58,14 @@ public class Main
         GameObject sphere = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         sphere.addComponent(MeshRenderer.class);
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
-        sphere.getComponent(MeshRenderer.class).material = metal;
+        sphere.getComponent(MeshRenderer.class).material = redMaterial;
+        
+        GameObject sphere2 = new GameObject("littleSphere", new Transform(new Vector3f(0, 0, 5)));
+        sphere2.addComponent(MeshRenderer.class);
+        sphere2.getComponent(MeshRenderer.class).mesh = sphereMesh;
+        sphere2.getComponent(MeshRenderer.class).material = redMaterial;
 
-
-        GameObject box = new GameObject("box", new Transform(new Vector3f(0, 0, 10)));
+        GameObject box = new GameObject("box", new Transform(new Vector3f(-10, 0, 0)));
         box.addComponent(MeshRenderer.class);
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
@@ -71,6 +75,8 @@ public class Main
         suzanne2.addComponent(MeshRenderer.class);
         suzanne2.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne2.getComponent(MeshRenderer.class).material = greenMaterial;
+        suzanne2.addComponent(SuzanneComponent.class);
+        suzanne2.addChild(sphere2);
         box.addChild(suzanne2);
 
         GameObject suzanne3 = new GameObject("Suzanne3", new Transform(new Vector3f(0, 0, -10), new Vector3f(2f)));
@@ -97,6 +103,7 @@ public class Main
         scene.addGameObject(sun);
         scene.addGameObject(box);
         scene.addGameObject(sphere);
+        scene.addGameObject(sphere2);
         scene.addGameObject(floor);
         scene.addGameObject(wall);
         scene.addGameObject(suzanne2);
