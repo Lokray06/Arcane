@@ -109,7 +109,6 @@ public class Texture {
     }
     
     private void createDefaultTexture(Type type) {
-        System.out.println("Creating default texture: " + type);
         textureID = GL11.glGenTextures();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureID);
         ByteBuffer pixel = BufferUtils.createByteBuffer(4);
