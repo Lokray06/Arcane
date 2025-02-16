@@ -1,53 +1,70 @@
 #version 330 core
 
-in vec3 fragNormal;
-in vec2 fragTexCoord;
-// fragPos is the world‐space position of the fragment.
+// Inputs from the vertex shader.
 in vec3 fragPos;
+in vec2 fragTexCoord;
+in vec3 fragNormal;  // Geometry (vertex) normal in world space.
 
+// Output color.
 out vec4 outColor;
 
-uniform sampler2D uAlbedo;
+// Camera position.
 uniform vec3 viewPos;
 
-struct DirectionalLight {
-    vec3 direction;
-    vec3 color;
-    float strength;
-};
+// ----- Material Maps -----
+uniform sampler2D uAlbedo;
+uniform sampler2D uNormal;
+uniform sampler2D uMetallic;
+uniform sampler2D uRoughness;
+uniform sampler2D uAO;
 
+// Additional material properties.
+uniform vec3 uAlbedoColor; // Multiplies the albedo map.
+uniform float uMetallicScalar = 1; // Multiplies the albedo map.
+uniform float uRoughnessScalar = 1; // Multiplies the albedo map.
+uniform float uNormalMapStrength;
+
+// ----- Skybox Ambient -----
 struct SkyboxAmbient {
     samplerCube cubemap;
     float strength;
 };
 uniform SkyboxAmbient skyboxAmbient;
 
+// ----- Directional Lights -----
 #define MAX_DIR_LIGHTS 10
+struct DirectionalLight {
+    vec3 direction;
+    vec3 color;
+    float strength;
+};
 uniform int numDirectionalLights;
 uniform DirectionalLight directionalLights[MAX_DIR_LIGHTS];
 
-// --- Cascaded Shadow Mapping Uniforms ---
+// ----- Cascaded Shadow Mapping Uniforms -----
 #define NUM_CASCADES 4
-
-// Each cascade has its own shadow map.
 uniform sampler2D shadowMaps[NUM_CASCADES];
-// And its own light-space transform matrix.
 uniform mat4 lightSpaceMatrices[NUM_CASCADES];
-// The cascade split distances (in view-space units, for example).
 uniform float cascadeSplits[NUM_CASCADES];
 
+// Constants and multipliers.
+const float PI = 3.14159265359;
 float biasMultiplier = 0.00001;
-float strengthMultiplier = 0.0001;
+float strengthMultiplier = 0.01; // (kept as-is to control overexposure)
 
-// 3x3 Percentage Closer Filtering (PCF) shadow calculation.
+// ----- Function: Calculate Skybox Ambient Lighting -----
+vec3 GetSkyboxAmbient(vec3 normal) {
+    vec3 viewDir = normalize(viewPos - fragPos);
+    vec3 reflectDir = reflect(-viewDir, normal);
+    vec3 ambientColor = texture(skyboxAmbient.cubemap, reflectDir).rgb;
+    return ambientColor * skyboxAmbient.strength;
+}
+
+// ----- Function: Shadow Calculation (PCF) -----
 float ShadowCalculation(vec4 fragPosLightSpace, sampler2D shadowMap)
 {
-    // Transform to normalized device coordinates.
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform from NDC [-1,1] to [0,1].
     projCoords = projCoords * 0.5 + 0.5;
-
-    // If outside the light's frustum, return no shadow.
     if(projCoords.z > 1.0)
     return 1.0;
 
@@ -59,48 +76,113 @@ float ShadowCalculation(vec4 fragPosLightSpace, sampler2D shadowMap)
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
-            float closestDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > closestDepth ? 0.0 : 1.0;
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 0.0 : 1.0;
         }
     }
     shadow /= 9.0;
     return shadow;
 }
 
-vec3 GetSkyboxAmbient(vec3 normal) {
-    // Calculate the reflection direction based on normal and view direction
-    vec3 viewDir = normalize(viewPos - fragPos); // Direction from fragment to camera
-    vec3 reflectDir = reflect(-viewDir, normalize(normal));   // Reflection direction
-    vec3 ambientColor = texture(skyboxAmbient.cubemap, reflectDir).rgb;
-    return ambientColor * skyboxAmbient.strength;
+// ----- PBR Helper Functions -----
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a      = roughness * roughness;
+    float a2     = a * a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float nom   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return nom / max(denom, 0.001);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 void main()
 {
-    vec4 albedoColor = texture(uAlbedo, fragTexCoord);
-    vec3 ambient = GetSkyboxAmbient(fragNormal);
+    // --- Sample Material Textures ---
+    // sRGB albedo (converted to linear) multiplied by the albedo color.
+    vec3 albedo = pow(texture(uAlbedo, fragTexCoord).rgb * uAlbedoColor, vec3(2.2));
+    float metallic = texture(uMetallic, fragTexCoord).r * uMetallicScalar;
+    float roughness = texture(uRoughness, fragTexCoord).r * uRoughnessScalar;
+    float ao = texture(uAO, fragTexCoord).r;
 
-    vec3 norm = normalize(fragNormal);
-    vec3 viewDir = normalize(viewPos - fragPos);
+    // --- Normal Mapping ---
+    // Start with the geometry normal.
+    vec3 N = normalize(fragNormal);
+    // Sample the normal map (remap from [0,1] to [-1,1]).
+    vec3 tangentNormal = texture(uNormal, fragTexCoord).rgb;
+    tangentNormal = tangentNormal * 2.0 - 1.0;
+    // Blend the two normals based on uNormalMapStrength.
+    N = normalize(mix(N, tangentNormal, uNormalMapStrength));
 
-    vec3 diffuse = vec3(0.0);
-    vec3 specular = vec3(0.0);
+    // --- View Direction ---
+    vec3 V = normalize(viewPos - fragPos);
 
-    float shininess = 32.0;
-    float specularStrength = 0.5;
+    // --- Compute Reflectance at Normal Incidence ---
+    vec3 F0 = vec3(0.04); // Typically 4% for non-metals.
+    F0 = mix(F0, albedo, metallic); // For metallic surfaces, F0 is the albedo.
 
-    // Accumulate lighting from all directional lights.
-    for (int i = 0; i < numDirectionalLights; i++) {
-        vec3 lightDir = normalize(-directionalLights[i].direction);
-        float diff = max(dot(norm, lightDir), 0.0);
-        diffuse += directionalLights[i].color * directionalLights[i].strength * strengthMultiplier * diff;
-        vec3 halfDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(norm, halfDir), 0.0), shininess);
-        specular += directionalLights[i].color * directionalLights[i].strength * strengthMultiplier * spec * specularStrength;
+    // --- Accumulate Directional Light Contributions ---
+    vec3 Lo = vec3(0.0);
+    for (int i = 0; i < numDirectionalLights; ++i)
+    {
+        vec3 L = normalize(-directionalLights[i].direction);
+        vec3 H = normalize(V + L);
+        float NdotL = max(dot(N, L), 0.0);
+        float NdotV = max(dot(N, V), 0.0);
+
+        if (NdotL > 0.0)
+        {
+            // Cook-Torrance BRDF
+            float D = DistributionGGX(N, H, roughness);
+            float G = GeometrySmith(N, V, L, roughness);
+            vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+            vec3 numerator = D * G * F;
+            float denominator = 4.0 * NdotV * NdotL + 0.001;
+            vec3 specular = numerator / denominator;
+
+            // kS is equal to Fresnel.
+            vec3 kS = F;
+            // kD is the diffuse component, reduced by the metalness.
+            vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+            // Lambertian diffuse term.
+            vec3 diffuse = kD * albedo / PI;
+
+            // Apply light intensity with the strength multiplier (kept as before).
+            vec3 radiance = directionalLights[i].color * directionalLights[i].strength * strengthMultiplier;
+
+            // Accumulate the reflected light (both diffuse and specular).
+            Lo += (diffuse + specular) * radiance * NdotL;
+        }
     }
 
-    // --- Cascade Selection ---
-    // Here we simply choose the cascade based on the view-space depth.
+    // --- Cascaded Shadow Mapping ---
+    // Select the cascade based on view-space depth.
     float viewDepth = length(fragPos - viewPos);
     int cascadeIndex = NUM_CASCADES - 1;
     for (int i = 0; i < NUM_CASCADES; i++) {
@@ -109,12 +191,20 @@ void main()
             break;
         }
     }
-
-    // Compute light-space position for the chosen cascade.
     vec4 fragPosLS = lightSpaceMatrices[cascadeIndex] * vec4(fragPos, 1.0);
     float shadow = ShadowCalculation(fragPosLS, shadowMaps[cascadeIndex]);
 
-    vec3 lighting = ambient + (diffuse + specular) * shadow;
-    vec3 result = albedoColor.rgb * lighting;
-    outColor = vec4(result, albedoColor.a);
+    // --- Ambient Lighting ---
+    vec3 ambient = GetSkyboxAmbient(N);
+
+    // --- Final Color Composition ---
+    // Ambient light is modulated by AO.
+    vec3 color = ambient * ao + Lo * shadow;
+
+    // (Optional tone mapping could be applied here)
+
+    // Gamma correction.
+    color = pow(color, vec3(1.0/2.2));
+
+    outColor = vec4(color, 1.0);
 }

@@ -117,8 +117,8 @@ public class Texture {
         switch (type) {
             case ALBEDO -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255);
             case NORMAL -> pixel.put((byte) 128).put((byte) 128).put((byte) 255).put((byte) 255);
-            case ROUGHNESS -> pixel.put((byte) 128).put((byte) 128).put((byte) 128).put((byte) 255);
-            case METALLIC -> pixel.put((byte) 0).put((byte) 0).put((byte) 0).put((byte) 255); // non-metal by default
+            case ROUGHNESS -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255);
+            case METALLIC -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255); // non-metal by default
             case AO -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255); // full ambient occlusion
         }
         pixel.flip();

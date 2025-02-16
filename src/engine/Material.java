@@ -6,16 +6,16 @@ import static engine.Texture.Type;
 
 public class Material {
     public Texture albedoMap; // Albedo texture
-    public Vector3f albedoColor; //Multiplies the albedo map / texture
+    public Vector3f albedoColor = new Vector3f(1); //Multiplies the albedo map / texture
     
     public Texture normalMap; // Normal texture
     public float normalMapStrength; // Scalar multiplier for the normal map strength
     
     public Texture metallicMap; // Metallic texture (Where is and where isn't metallic)
-    public float metallic = 0f; // Scalar multiplier for the metallic map strength
+    public float metallic = 1f; // Scalar multiplier for the metallic map strength
     
     public Texture roughnessMap; // Roughness texture (Where is and where isn't shiny)
-    public float roughness = 0.4f; // Scalar multiplier fot the roughness texture
+    public float roughness = 1; // Scalar multiplier fot the roughness texture
     
     public Texture aoMap; // AO texture
     

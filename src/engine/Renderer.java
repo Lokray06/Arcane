@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
+import static org.lwjgl.opengl.GL13.GL_TEXTURE5;
 
 public class Renderer {
     // Main shader program used for scene rendering.
@@ -175,9 +176,10 @@ public class Renderer {
         skybox = GameObject.getGameObjectWithComponent(Skybox.class).getComponent(Skybox.class);
         if (skybox != null && skybox.getCubeMap() != null) {
             // Pass the skybox texture to the shader
-            skybox.getCubeMap().bind(GL_TEXTURE0);
-            shaderProgram.setUniform("skyboxAmbient.cubemap", 0);
-            shaderProgram.setUniform("skyboxAmbient.strength", 0.5f); // Adjust this value as needed
+            skybox.getCubeMap().bind(GL_TEXTURE5);
+            skybox.getCubeMap().bind(5);
+            shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
+            shaderProgram.setUniform("skyboxAmbient.strength", 0.1f); // Adjust this value as needed
         }
         
         if (activeScene.rootGameObject != null) {
@@ -199,6 +201,8 @@ public class Renderer {
     }
     
     // Recursively renders GameObjects for the main pass.
+    // ... (other parts of Renderer.java remain unchanged)
+    
     private static void renderRecursive(GameObject gameObject) {
         Camera mainCamera = getActiveCamera(Engine.activeScene);
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
@@ -213,36 +217,48 @@ public class Renderer {
             shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
             Material material = meshRenderer.material;
             
-            // --- Bind all components of the material ---
-            
-            // Bind Albedo (texture unit 0)
+            // --- Bind all material textures for PBR ---
+            // Bind Albedo map to texture unit 0.
             GL13.glActiveTexture(GL13.GL_TEXTURE0);
             material.albedoMap.bind(0);
             shaderProgram.setUniform("uAlbedo", 0);
             
-            // Bind Normal map (texture unit 1)
+            // Bind Normal map to texture unit 1.
             GL13.glActiveTexture(GL13.GL_TEXTURE1);
             material.normalMap.bind(1);
             shaderProgram.setUniform("uNormal", 1);
             
-            // Bind Roughness map (texture unit 2)
+            // Bind Metallic map to texture unit 2.
             GL13.glActiveTexture(GL13.GL_TEXTURE2);
-            material.roughnessMap.bind(2);
-            shaderProgram.setUniform("uRoughness", 2);
+            material.metallicMap.bind(2);
+            shaderProgram.setUniform("uMetallic", 2);
             
-            // Set material scalar uniforms:
-            shaderProgram.setUniform("uMetallic", material.metallic);
-            shaderProgram.setUniform("uSpecular", material.roughness);
+            // Bind Roughness map to texture unit 3.
+            GL13.glActiveTexture(GL13.GL_TEXTURE3);
+            material.roughnessMap.bind(3);
+            shaderProgram.setUniform("uRoughness", 3);
             
-            //Send to render
+            // Bind Ambient Occlusion (AO) map to texture unit 4.
+            GL13.glActiveTexture(GL13.GL_TEXTURE4);
+            material.aoMap.bind(4);
+            shaderProgram.setUniform("uAO", 4);
+            
+            // Set additional material properties.
+            shaderProgram.setUniform("uNormalMapStrength", material.normalMapStrength);
+            shaderProgram.setUniform("uAlbedoColor", material.albedoColor);
+            shaderProgram.setUniform("uMetallicScalar", material.metallic); // Added
+            shaderProgram.setUniform("uRoughnessScalar", material.roughness); // Added
+            
+            // Send the mesh data to the GPU.
             meshRenderer.mesh.render();
-            //Unbind the texture
+            // Unbind the texture.
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         }
         for (GameObject child : gameObject.children) {
             renderRecursive(child);
         }
     }
+    
     
     // Recursively collects all directional lights in the scene.
     private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {
