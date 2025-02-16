@@ -60,6 +60,11 @@ public class Main
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
         sphere.getComponent(MeshRenderer.class).material = metal;
         
+        GameObject sphere3 = new GameObject("Sphere2", new Transform(new Vector3f(-10, 0, -4), new Vector3f(1f)));
+        sphere3.addComponent(MeshRenderer.class);
+        sphere3.getComponent(MeshRenderer.class).mesh = sphereMesh;
+        sphere3.getComponent(MeshRenderer.class).material = redMaterial;
+        
         GameObject sphere2 = new GameObject("littleSphere", new Transform(new Vector3f(0, 0, 5)));
         sphere2.addComponent(MeshRenderer.class);
         sphere2.getComponent(MeshRenderer.class).mesh = sphereMesh;
@@ -104,6 +109,7 @@ public class Main
         scene.addGameObject(box);
         scene.addGameObject(sphere);
         scene.addGameObject(sphere2);
+        scene.addGameObject(sphere3);
         scene.addGameObject(floor);
         scene.addGameObject(wall);
         scene.addGameObject(suzanne2);

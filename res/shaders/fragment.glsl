@@ -53,7 +53,7 @@ uniform float cascadeSplits[NUM_CASCADES];
 // Constants and multipliers.
 const float PI = 3.14159265359;
 float biasMultiplier = 0.00001;
-float strengthMultiplier = 1;
+float strengthMultiplier = 0.01;
 
 // ----- Function: Calculate Skybox Ambient Lighting -----
 vec3 GetSkyboxAmbient(vec3 normal) {
@@ -89,40 +89,35 @@ float ShadowCalculation(vec4 fragPosLS, sampler2D shadowMap, vec3 N)
 }
 
 // ----- PBR Helper Functions -----
+
+// Use roughness directly (clamped to a minimum) so that specular grows when smooth.
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-    float a      = roughness * roughness;
-    float a2     = a * a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float nom   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-
-    return nom / max(denom, 0.001);
+    float a2    = roughness * roughness * roughness * roughness;
+    float NdotH = max (dot (N, H), 0.0);
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    return a2 / (PI * denom * denom);
 }
 
+// Optionally, also clamp roughness here for consistency.
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    float r = roughness + 1.0;
+    float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
-    return ggx1 * ggx2;
+    return GeometrySchlickGGX (max (dot (N, L), 0.0), roughness) *
+    GeometrySchlickGGX (max (dot (N, V), 0.0), roughness);
 }
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (1.0 - F0) * pow (1.0 - cosTheta, 5.0);
 }
+
 
 void main()
 {
@@ -135,16 +130,35 @@ void main()
 
     float texRoughness = texture(uRoughness, fragTexCoord).r;
     float roughness = clamp(texRoughness * uRoughnessScalar, 0.0, 1.0);
+    // Ensure roughness never goes below 0.04:
+    roughness = max(roughness, 0.04);
 
     float ao = texture(uAO, fragTexCoord).r;
 
     // --- Normal Mapping ---
+    // Get the interpolated world-space normal.
     vec3 normalWorld = normalize(vNormal);
+
+    // Sample the normal from the normal map and remap from [0,1] to [-1,1].
     vec3 tangentNormal = texture(uNormal, fragTexCoord).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
-    mat3 TBN = mat3(normalize(vTangent), normalize(vBitangent), normalWorld);
+    // Uncomment the next line if your normal map is using an opposite Y convention.
+    // tangentNormal.y = -tangentNormal.y;
+
+    // Re-orthogonalize the tangent relative to the normal.
+    vec3 T = normalize(vTangent - dot(vTangent, normalWorld) * normalWorld);
+    // Recompute the bitangent so that T, B, N form an orthonormal basis.
+    vec3 B = normalize(cross(normalWorld, T));
+
+    // Construct the TBN matrix with T, B, and N as columns.
+    mat3 TBN = mat3(T, B, normalWorld);
+
+    // Transform the normal from tangent space to world space.
     vec3 mappedNormal = normalize(TBN * tangentNormal);
+
+    // Mix between the original geometry normal and the mapped normal based on strength.
     vec3 N = normalize(mix(normalWorld, mappedNormal, uNormalMapStrength));
+
 
     // --- View Direction ---
     vec3 V = normalize(viewPos - fragPos);
