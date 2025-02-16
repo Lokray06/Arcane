@@ -1,17 +1,23 @@
 package engine;
 
+import org.joml.Vector3f;
+
 import static engine.Texture.Type;
 
 public class Material {
-    public Texture albedoMap;
-    public Texture normalMap;
-    public Texture metallicMap;
-    public Texture roughnessMap;
-    public Texture aoMap;
+    public Texture albedoMap; // Albedo texture
+    public Vector3f albedoColor; //Multiplies the albedo map / texture
     
-    // These are our “scalar” parameters.
-    public float roughness = 0.4f; // non-metallic F₀ (typically ~0.04 for dielectrics)
-    public float metallic = 0f; // 0 = dielectric, 1 = metal
+    public Texture normalMap; // Normal texture
+    public float normalMapStrength; // Scalar multiplier for the normal map strength
+    
+    public Texture metallicMap; // Metallic texture (Where is and where isn't metallic)
+    public float metallic = 0f; // Scalar multiplier for the metallic map strength
+    
+    public Texture roughnessMap; // Roughness texture (Where is and where isn't shiny)
+    public float roughness = 0.4f; // Scalar multiplier fot the roughness texture
+    
+    public Texture aoMap; // AO texture
     
     // Default empty material – using default textures.
     public static Material empty = new Material(

@@ -75,9 +75,6 @@ public class Renderer {
             cascadeLightSpaceMatrices[i] = new Matrix4f();
         }
         cascadeSplits = new float[cascadeCount];
-        
-        // --- Create SSR related stuff ---
-        
     }
     
     public static void render(Scene activeScene) {
