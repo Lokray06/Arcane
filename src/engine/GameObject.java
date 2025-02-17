@@ -5,7 +5,9 @@ import engine.utils.GameObjectManager;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents an object within the game scene.
@@ -216,27 +218,40 @@ public class GameObject {
     }
     
     /**
-     * Recursively searches for a GameObject that contains a component of the specified class.
-     * <p>
-     * The search is performed on the active scene's game objects and their children.
-     * </p>
+     * Recursively searches for a GameObject that has a component of the specified class,
+     * avoiding cycles by keeping track of visited game objects.
      *
      * @param <T> the type of the component.
      * @param componentClass the class of the component to search for.
      * @return the first GameObject containing the component, or null if not found.
      */
     public static <T extends Component> GameObject getGameObjectWithComponent(Class<T> componentClass) {
+        return getGameObjectWithComponent(componentClass, new HashSet<>());
+    }
+    
+    private static <T extends Component> GameObject getGameObjectWithComponent(Class<T> componentClass, Set<GameObject> visited) {
         for (GameObject gameObject : Engine.activeScene.getGameObjects()) {
-            Component component = gameObject.getComponent(componentClass);
-            if (component != null) {
-                return gameObject;
-            } else if (!gameObject.children.isEmpty()) {
-                for (GameObject child : gameObject.children) {
-                    GameObject result = child.getGameObjectWithComponent(componentClass);
-                    if (result != null) {
-                        return result;
-                    }
-                }
+            GameObject result = getGameObjectWithComponent(gameObject, componentClass, visited);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+    
+    private static <T extends Component> GameObject getGameObjectWithComponent(GameObject gameObject, Class<T> componentClass, Set<GameObject> visited) {
+        if (visited.contains(gameObject)) {
+            return null;
+        }
+        visited.add(gameObject);
+        
+        if (gameObject.getComponent(componentClass) != null) {
+            return gameObject;
+        }
+        for (GameObject child : gameObject.children) {
+            GameObject result = getGameObjectWithComponent(child, componentClass, visited);
+            if (result != null) {
+                return result;
             }
         }
         return null;

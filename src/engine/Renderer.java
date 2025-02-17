@@ -6,22 +6,16 @@ import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.*;
 import org.lwjgl.system.MemoryStack;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * The Renderer class is responsible for rendering the scene.
- * <p>
- * It manages shader programs, sets up shadow mapping, renders the scene geometry,
- * and applies lighting and skybox effects.
- * </p>
- */
 public class Renderer {
     // Main shader program used for scene rendering.
     private static ShaderProgram shaderProgram;
@@ -31,15 +25,25 @@ public class Renderer {
     
     private static ShaderProgram skyboxShader;
     
-    // Cascaded shadow parameters.
-    public static int cascadeCount = 4; // Not used in this simple example.
+    // Cascaded shadow parameters for directional light.
+    public static int cascadeCount = 4;
     public static int baseShadowMapWidth = 2048;
     public static int baseShadowMapHeight = 2048;
     
-    // --- Shadow Map Variables ---
+    // --- Shadow Map Variables for directional light ---
     private static int shadowMapFBO;
     private static int shadowMap;
     private static ShaderProgram depthShader;
+    
+    // --- New: Shader program for point light shadow mapping ---
+    private static ShaderProgram pointDepthShader;
+    // Resolution for point light shadow maps:
+    private static final int pointShadowMapWidth = 1024;
+    private static final int pointShadowMapHeight = 1024;
+    
+    // These maps keep track of (point light → its shadow framebuffer and cube map)
+    private static final Map<LightPoint, Integer> pointLightShadowFBO = new HashMap<>();
+    private static final Map<LightPoint, Integer> pointLightShadowCube = new HashMap<>();
     
     private static Skybox skybox;
     
@@ -58,12 +62,18 @@ public class Renderer {
         String skyboxFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxFragment.glsl"));
         skyboxShader = new ShaderProgram(skyboxVertexSource, skyboxFragmentSource);
         
-        // --- Load Depth Shader (for shadow mapping) ---
+        // --- Load Directional Light Depth Shader (for shadow mapping) ---
         String depthVertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl"));
         String depthFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl"));
         depthShader = new ShaderProgram(depthVertexSource, depthFragmentSource);
         
-        // --- Create Shadow Map FBO and Texture ---
+        // --- Load Point Light Depth Shader (vertex, geometry & fragment) ---
+        String pointDepthVertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthVertex.glsl"));
+        String pointDepthGeometrySource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl"));
+        String pointDepthFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl"));
+        pointDepthShader = new ShaderProgram(pointDepthVertexSource, pointDepthGeometrySource, pointDepthFragmentSource);
+        
+        // --- Create Directional Shadow Map FBO and Texture ---
         shadowMapFBO = GL30.glGenFramebuffers();
         shadowMap = GL11.glGenTextures();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
@@ -74,7 +84,7 @@ public class Renderer {
         // Set texture wrapping to clamp to border and set border color to white.
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
-        FloatBuffer borderColor = BufferUtils.createFloatBuffer(4).put(new float[]{1f,1f,1f,1f});
+        FloatBuffer borderColor = BufferUtils.createFloatBuffer(4).put(new float[]{1f, 1f, 1f, 1f});
         borderColor.flip();
         GL11.glTexParameterfv(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
         // Attach texture as the framebuffer's depth buffer.
@@ -83,22 +93,13 @@ public class Renderer {
         GL11.glDrawBuffer(GL11.GL_NONE);
         GL11.glReadBuffer(GL11.GL_NONE);
         if (GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE) {
-            System.err.println("Shadow map framebuffer not complete!");
+            System.err.println("Directional shadow map framebuffer not complete!");
         }
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
     }
     
     /**
      * Renders the active scene from the perspective of the active camera.
-     * <p>
-     * This method performs the following passes:
-     * <ol>
-     *   <li>Shadow map pass (renders scene depth from the light's perspective).</li>
-     *   <li>Main scene pass (renders scene with lighting and shadows).</li>
-     * </ol>
-     * </p>
-     *
-     * @param activeScene the scene to render.
      */
     public static void render(Scene activeScene) {
         Camera mainCamera = getActiveCamera(activeScene);
@@ -107,35 +108,97 @@ public class Renderer {
             return;
         }
         
-        LightDirectional mainLight = getMainDirectionalLight(activeScene);
-        if (mainLight == null) {
-            System.err.println("No directional light available for shadows.");
-            return;
+        LightDirectional mainDirectionalLight = getMainDirectionalLight(activeScene);
+        boolean hasDirectionalLight = (mainDirectionalLight != null);
+        Matrix4f lightSpaceMatrix = new Matrix4f();
+        
+        // -------- 1. Directional Light Shadow Map Pass --------
+        if (hasDirectionalLight) {
+            Vector3f lightDir = new Vector3f(mainDirectionalLight.gameObject.transform.front()).negate();
+            Vector3f sceneCenter = new Vector3f(0, 0, 0); // Could be computed from scene bounds.
+            Vector3f lightPos = new Vector3f(sceneCenter).sub(new Vector3f(lightDir).mul(30f));
+            Matrix4f lightView = new Matrix4f().lookAt(lightPos, sceneCenter, new Vector3f(0, 1, 0));
+            Matrix4f lightProjection = new Matrix4f().ortho(-20, 20, -20, 20, 1, 100);
+            lightProjection.mul(lightView, lightSpaceMatrix);
+            
+            // Render shadow map from directional light's view.
+            GL11.glViewport(0, 0, baseShadowMapWidth, baseShadowMapHeight);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
+            GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+            depthShader.use();
+            depthShader.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
+            renderSceneForShadows(activeScene, depthShader);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+        } else {
+            System.err.println("No directional light available for shadows. Rendering without directional shadows.");
+            lightSpaceMatrix.identity();
         }
         
-        // --- Compute the light view matrix ---
-        Vector3f lightDir = new Vector3f(mainLight.gameObject.transform.front()).negate();
-        Vector3f sceneCenter = new Vector3f(0, 0, 0); // Alternatively, compute the scene’s center.
-        Vector3f lightPos = new Vector3f(sceneCenter).sub(new Vector3f(lightDir).mul(30f));
-        Matrix4f lightView = new Matrix4f().lookAt(lightPos, sceneCenter, new Vector3f(0, 1, 0));
+        // -------- 2. Point Light Shadow Map Pass --------
+        // Collect point lights from the scene.
+        List<LightPoint> pointLights = new ArrayList<>();
+        if (activeScene.rootGameObject != null) {
+            collectPointLights(activeScene.rootGameObject, pointLights);
+        }
+        // For each point light, render its shadow cube map.
+        for (LightPoint pointLight : pointLights) {
+            // (For simplicity we assume every point light casts shadows.)
+            // If this light does not yet have a shadow map allocated, create one:
+            if (!pointLightShadowFBO.containsKey(pointLight)) {
+                int fbo = GL30.glGenFramebuffers();
+                int cubeMap = GL11.glGenTextures();
+                GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
+                for (int i = 0; i < 6; i++) {
+                    GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL11.GL_DEPTH_COMPONENT,
+                                      pointShadowMapWidth, pointShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (ByteBuffer) null);
+                }
+                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_EDGE);
+                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_EDGE);
+                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL13.GL_CLAMP_TO_EDGE);
+                GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo);
+                GL33.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, cubeMap, 0);
+                GL11.glDrawBuffer(GL11.GL_NONE);
+                GL11.glReadBuffer(GL11.GL_NONE);
+                if (GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE) {
+                    System.err.println("Point light shadow framebuffer not complete!");
+                }
+                GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+                pointLightShadowFBO.put(pointLight, fbo);
+                pointLightShadowCube.put(pointLight, cubeMap);
+            }
+            int fbo = pointLightShadowFBO.get(pointLight);
+            int cubeMap = pointLightShadowCube.get(pointLight);
+            Vector3f lightPos = new Vector3f(pointLight.gameObject.transform.globalPosition);
+            float farPlane = 100.0f; // You might let each point light specify its own far plane.
+            
+            // Create the 6 view-projection matrices for the cubemap faces.
+            Matrix4f shadowProj = new Matrix4f().perspective((float) Math.toRadians(90.0f), 1.0f, 1.0f, farPlane);
+            Matrix4f[] shadowTransforms = new Matrix4f[6];
+            shadowTransforms[0] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(1, 0, 0), new Vector3f(0, -1, 0));
+            shadowTransforms[1] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(-1, 0, 0), new Vector3f(0, -1, 0));
+            shadowTransforms[2] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 1, 0), new Vector3f(0, 0, 1));
+            shadowTransforms[3] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, -1, 0), new Vector3f(0, 0, -1));
+            shadowTransforms[4] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 0, 1), new Vector3f(0, -1, 0));
+            shadowTransforms[5] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 0, -1), new Vector3f(0, -1, 0));
+            
+            // Render the scene to this point light's shadow cube map.
+            GL11.glViewport(0, 0, pointShadowMapWidth, pointShadowMapHeight);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo);
+            GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+            pointDepthShader.use();
+            // Set the 6 shadow matrices.
+            for (int i = 0; i < 6; i++) {
+                pointDepthShader.setUniformMat4("shadowMatrices[" + i + "]", shadowTransforms[i]);
+            }
+            pointDepthShader.setUniform("lightPos", lightPos);
+            pointDepthShader.setUniform("farPlane", farPlane);
+            renderSceneForShadows(activeScene, pointDepthShader);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+        }
         
-        // --- Create light projection matrix ---
-        // (Here we use an orthographic projection. You may adjust the bounds as needed.)
-        Matrix4f lightProjection = new Matrix4f().ortho(-20, 20, -20, 20, 1, 100);
-        Matrix4f lightSpaceMatrix = new Matrix4f();
-        lightProjection.mul(lightView, lightSpaceMatrix);
-        
-        // --- 1. Render Shadow Map Pass ---
-        GL11.glViewport(0, 0, baseShadowMapWidth, baseShadowMapHeight);
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
-        GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-        depthShader.use();
-        depthShader.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
-        // Render scene geometry (only depth is written).
-        renderSceneForShadows(activeScene, depthShader);
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
-        
-        // --- 2. Render Main Scene Pass ---
+        // -------- 3. Main Scene Pass --------
         GL11.glViewport(0, 0, Engine.WINDOW_WIDTH, Engine.WINDOW_HEIGHT);
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
         
@@ -145,11 +208,12 @@ public class Renderer {
             shaderProgram.setUniformMat4(VIEW_UNIFORM, mainCamera.viewMatrix);
             shaderProgram.setUniform("viewPos", mainCamera.gameObject.transform.globalPosition);
         }
-        
         shaderProgram.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
-        GL13.glActiveTexture(GL13.GL_TEXTURE6);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
-        shaderProgram.setUniform("shadowMap", 6);
+        if (hasDirectionalLight) {
+            GL13.glActiveTexture(GL13.GL_TEXTURE6);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
+            shaderProgram.setUniform("shadowMap", 6);
+        }
         
         // Set directional lights.
         List<LightDirectional> directionalLights = new ArrayList<>();
@@ -166,16 +230,10 @@ public class Renderer {
             shaderProgram.setUniform("directionalLights[" + i + "].strength", light.strength);
         }
         
-        // Collect and set point lights.
-        List<LightPoint> pointLights = new ArrayList<>();
-        if (activeScene.rootGameObject != null) {
-            collectPointLights(activeScene.rootGameObject, pointLights);
-        }
+        // Pass point light parameters (positions, colors, etc.).
         shaderProgram.setUniform("numPointLights", pointLights.size());
-        int maxPointLights = 10;
-        for (int i = 0; i < pointLights.size() && i < maxPointLights; i++) {
+        for (int i = 0; i < pointLights.size() && i < maxLights; i++) {
             LightPoint pLight = pointLights.get(i);
-            // The point light’s position comes from the game object’s transform.
             shaderProgram.setUniform("pointLights[" + i + "].position", pLight.gameObject.transform.globalPosition);
             shaderProgram.setUniform("pointLights[" + i + "].color", pLight.color);
             shaderProgram.setUniform("pointLights[" + i + "].strength", pLight.strength);
@@ -183,9 +241,23 @@ public class Renderer {
             shaderProgram.setUniform("pointLights[" + i + "].linear", pLight.linear);
             shaderProgram.setUniform("pointLights[" + i + "].quadratic", pLight.quadratic);
         }
+        // Bind each point light's shadow cube map.
+        int pointShadowTexUnitStart = 7;
+        for (int i = 0; i < pointLights.size() && i < maxLights; i++) {
+            LightPoint pLight = pointLights.get(i);
+            int cubeMap = pointLightShadowCube.getOrDefault(pLight, 0);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + pointShadowTexUnitStart + i);
+            GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
+            shaderProgram.setUniform("pointShadowMaps[" + i + "]", pointShadowTexUnitStart + i);
+            // Pass the far plane used in the point shadow pass:
+            shaderProgram.setUniform("pointShadowFarPlanes[" + i + "]", 100.0f);
+        }
         
-        // Bind and set the skybox if available.
-        skybox = GameObject.getGameObjectWithComponent(Skybox.class).getComponent(Skybox.class);
+        // Bind skybox if available.
+        GameObject skyboxGO = GameObject.getGameObjectWithComponent(Skybox.class);
+        if (skyboxGO != null) {
+            skybox = skyboxGO.getComponent(Skybox.class);
+        }
         if (skybox != null && skybox.getCubeMap() != null) {
             skybox.getCubeMap().bind(GL13.GL_TEXTURE5);
             shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
@@ -200,42 +272,25 @@ public class Renderer {
         }
     }
     
-    /**
-     * Renders the scene geometry for the shadow pass.
-     *
-     * @param activeScene the scene to render for shadows.
-     * @param depthShader the shader program used for rendering depth.
-     */
-    private static void renderSceneForShadows(Scene activeScene, ShaderProgram depthShader) {
+    private static void renderSceneForShadows(Scene activeScene, ShaderProgram shader) {
         if (activeScene.rootGameObject != null) {
-            renderForShadowsRecursive(activeScene.rootGameObject, depthShader);
+            renderForShadowsRecursive(activeScene.rootGameObject, shader);
         }
     }
     
-    /**
-     * Recursively renders game objects for the shadow pass.
-     *
-     * @param gameObject the current game object.
-     * @param depthShader the depth shader program.
-     */
-    private static void renderForShadowsRecursive(GameObject gameObject, ShaderProgram depthShader) {
+    private static void renderForShadowsRecursive(GameObject gameObject, ShaderProgram shader) {
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
         if (meshRenderer != null && meshRenderer.mesh != null) {
-            depthShader.use();
+            shader.use();
             Matrix4f modelMatrix = gameObject.transform.getModelMatrix();
-            depthShader.setUniformMat4(MODEL_UNIFORM, modelMatrix);
+            shader.setUniformMat4(MODEL_UNIFORM, modelMatrix);
             meshRenderer.mesh.render();
         }
         for (GameObject child : gameObject.children) {
-            renderForShadowsRecursive(child, depthShader);
+            renderForShadowsRecursive(child, shader);
         }
     }
     
-    /**
-     * Recursively renders the scene objects.
-     *
-     * @param gameObject the current game object to render.
-     */
     private static void renderRecursive(GameObject gameObject) {
         Camera mainCamera = getActiveCamera(Engine.activeScene);
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
@@ -249,7 +304,7 @@ public class Renderer {
             shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
             Material material = meshRenderer.material;
             
-            // Bind material textures (albedo, normal, metallic, roughness, AO).
+            // Bind material textures.
             GL13.glActiveTexture(GL13.GL_TEXTURE0);
             material.albedoMap.bind(0);
             shaderProgram.setUniform("uAlbedo", 0);
@@ -270,7 +325,6 @@ public class Renderer {
             material.aoMap.bind(4);
             shaderProgram.setUniform("uAO", 4);
             
-            // Set extra material parameters.
             shaderProgram.setUniform("uNormalMapStrength", material.normalMapStrength);
             shaderProgram.setUniform("uAlbedoColor", material.albedoColor);
             shaderProgram.setUniform("uMetallicScalar", material.metallic);
@@ -284,12 +338,6 @@ public class Renderer {
         }
     }
     
-    /**
-     * Recursively collects all directional lights from the scene hierarchy.
-     *
-     * @param gameObject the current game object.
-     * @param lights the list to collect directional lights into.
-     */
     private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {
         LightDirectional light = gameObject.getComponent(LightDirectional.class);
         if (light != null) {
@@ -300,12 +348,6 @@ public class Renderer {
         }
     }
     
-    /**
-     * Recursively collects all point lights from the scene hierarchy.
-     *
-     * @param gameObject the current game object.
-     * @param lights the list to collect point lights into.
-     */
     private static void collectPointLights(GameObject gameObject, List<LightPoint> lights) {
         LightPoint light = gameObject.getComponent(LightPoint.class);
         if (light != null) {
@@ -316,12 +358,6 @@ public class Renderer {
         }
     }
     
-    /**
-     * Computes the projection matrix for the active camera.
-     *
-     * @param camera the active camera.
-     * @return the projection matrix.
-     */
     private static Matrix4f getProjectionMatrix(Camera camera) {
         Matrix4f projectionMatrix = new Matrix4f();
         float aspectRatio = camera.aspectRatio;
@@ -334,12 +370,6 @@ public class Renderer {
         return projectionMatrix;
     }
     
-    /**
-     * Retrieves the active camera from the scene.
-     *
-     * @param activeScene the scene to search.
-     * @return the active Camera, or null if none is active.
-     */
     private static Camera getActiveCamera(Scene activeScene) {
         for (GameObject gameObject : activeScene.getGameObjects()) {
             Camera camera = gameObject.getComponent(Camera.class);
@@ -350,12 +380,6 @@ public class Renderer {
         return null;
     }
     
-    /**
-     * Retrieves the primary directional light from the scene.
-     *
-     * @param activeScene the scene to search.
-     * @return the first found directional light, or null if none exist.
-     */
     private static LightDirectional getMainDirectionalLight(Scene activeScene) {
         List<LightDirectional> directionalLights = new ArrayList<>();
         if (activeScene.rootGameObject != null) {
@@ -364,11 +388,9 @@ public class Renderer {
         return !directionalLights.isEmpty() ? directionalLights.get(0) : null;
     }
     
-    /**
-     * Cleans up the renderer by releasing shader program resources.
-     */
     public static void cleanup() {
         shaderProgram.cleanup();
         depthShader.cleanup();
+        pointDepthShader.cleanup();
     }
 }

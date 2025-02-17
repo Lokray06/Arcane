@@ -8,6 +8,7 @@ import org.lwjgl.system.MemoryStack;
 import java.nio.FloatBuffer;
 
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL32.*;
 
 /**
  * The {@code ShaderProgram} class encapsulates an OpenGL shader program.
@@ -49,10 +50,43 @@ public class ShaderProgram {
     }
     
     /**
+     * Creates a new shader program from the provided vertex, geometry, and fragment shader source code.
+     *
+     * @param vertexSource   the source code for the vertex shader.
+     * @param geometrySource the source code for the geometry shader.
+     * @param fragmentSource the source code for the fragment shader.
+     */
+    public ShaderProgram(String vertexSource, String geometrySource, String fragmentSource) {
+        int vertexShaderId = compileShader(vertexSource, GL_VERTEX_SHADER);
+        int geometryShaderId = compileShader(geometrySource, GL_GEOMETRY_SHADER);
+        int fragmentShaderId = compileShader(fragmentSource, GL_FRAGMENT_SHADER);
+        programId = glCreateProgram();
+        glAttachShader(programId, vertexShaderId);
+        glAttachShader(programId, geometryShaderId);
+        glAttachShader(programId, fragmentShaderId);
+        glLinkProgram(programId);
+        
+        // Check linking status.
+        int linked = glGetProgrami(programId, GL_LINK_STATUS);
+        if (linked == 0) {
+            String log = glGetProgramInfoLog(programId);
+            throw new RuntimeException("Error linking shader program: " + log);
+        }
+        
+        // Shaders can be detached and deleted after linking.
+        glDetachShader(programId, vertexShaderId);
+        glDetachShader(programId, geometryShaderId);
+        glDetachShader(programId, fragmentShaderId);
+        glDeleteShader(vertexShaderId);
+        glDeleteShader(geometryShaderId);
+        glDeleteShader(fragmentShaderId);
+    }
+    
+    /**
      * Compiles a shader of the specified type from source code.
      *
      * @param source the shader source code.
-     * @param type   the type of shader (e.g. {@code GL_VERTEX_SHADER} or {@code GL_FRAGMENT_SHADER}).
+     * @param type   the type of shader (e.g. {@code GL_VERTEX_SHADER}, {@code GL_GEOMETRY_SHADER} or {@code GL_FRAGMENT_SHADER}).
      * @return the shader ID.
      */
     private int compileShader(String source, int type) {
@@ -63,9 +97,9 @@ public class ShaderProgram {
         // Check compile status.
         int compiled = glGetShaderi(shaderId, GL_COMPILE_STATUS);
         if (compiled == 0) {
+            String shaderType = (type == GL_VERTEX_SHADER) ? "VERTEX" : (type == GL_GEOMETRY_SHADER) ? "GEOMETRY" : "FRAGMENT";
             String log = glGetShaderInfoLog(shaderId);
-            throw new RuntimeException("Error compiling shader (" +
-                                       (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
+            throw new RuntimeException("Error compiling shader (" + shaderType + "): " + log);
         }
         
         return shaderId;
@@ -125,7 +159,7 @@ public class ShaderProgram {
      */
     public void setUniform(String name, Vector3f value) {
         int location = glGetUniformLocation(programId, name);
-        if(location != -1) {
+        if (location != -1) {
             glUniform3f(location, value.x, value.y, value.z);
         }
     }
@@ -152,7 +186,7 @@ public class ShaderProgram {
      */
     public void setUniform(String name, Vector2f value) {
         int location = glGetUniformLocation(programId, name);
-        if(location != -1) {
+        if (location != -1) {
             glUniform2f(location, value.x, value.y);
         }
     }

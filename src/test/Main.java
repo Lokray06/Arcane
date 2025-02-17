@@ -23,8 +23,8 @@ public class Main
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
-        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
-        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
+        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
         Skybox skybox = new Skybox(skyboxTexture);
         
         Material redMaterial = new Material(red, 0, 1);
@@ -101,7 +101,7 @@ public class Main
         
         GameObject sun = new GameObject("Sun");
         sun.transform.rotation.x = 90;
-        sun.addComponent(LightDirectional.class);
+        //sun.addComponent(LightDirectional.class);
         sun.addComponent(SuzanneComponent.class);
         
         scene.getRootGameObject().addComponent(GameStuff.class);

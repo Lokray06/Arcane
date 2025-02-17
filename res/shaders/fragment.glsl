@@ -5,14 +5,13 @@ in vec2 fragTexCoord;
 in vec3 vNormal;
 in vec3 vTangent;
 in vec3 vBitangent;
-in vec4 fragPosLightSpace; // Light-space coordinate
+in vec4 fragPosLightSpace; // For directional shadow
 
-// Output color.
 out vec4 outColor;
 
-// Camera position.
 uniform vec3 viewPos;
 
+// ----- Material Maps & Properties -----
 // ----- Material Maps -----
 uniform sampler2D uAlbedo;
 uniform sampler2D uNormal;
@@ -56,32 +55,26 @@ struct PointLight {
 uniform int numPointLights;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
-// ----- Shadow Map -----
+// ----- Shadow Maps -----
+// Directional light shadow map:
 uniform sampler2D shadowMap;
+// Point light shadow maps and far plane (one per point light):
+uniform samplerCube pointShadowMaps[MAX_POINT_LIGHTS];
+uniform float pointShadowFarPlanes[MAX_POINT_LIGHTS];
 
 const float PI = 3.14159265359;
-uniform float uLightStrength = 0.01f;
+uniform float uLightStrength = 0.01;
 
-// ----- Shadow Calculation Function -----
+// ----- Directional Shadow Calculation -----
 float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
-    // Perform perspective divide.
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform to [0,1] range.
     projCoords = projCoords * 0.5 + 0.5;
-
-    // If outside the shadow map, return no shadow.
     if (projCoords.z > 1.0)
     return 0.0;
-
-    // Obtain closest depth from shadow map.
     float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // Current fragment depth from light’s perspective.
     float currentDepth = projCoords.z;
-    // Bias to prevent shadow acne.
     float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
-
-    // PCF (percentage-closer filtering) for smoother shadows.
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; ++x)
@@ -96,7 +89,41 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-// ----- PBR Helper Functions -----
+// ----- Point Light Shadow Calculation -----
+// A 20-sample PCF using a precomputed array of offset directions.
+float calculatePointShadow(int index, vec3 fragPos)
+{
+    vec3 lightToFrag = fragPos - pointLights[index].position;
+    float currentDepth = length(lightToFrag);
+    float bias = 0.05;
+    int samples = 20;
+    float shadow = 0.0;
+    float diskRadius = (1.0 + (currentDepth / pointShadowFarPlanes[index])) / 25.0;
+    vec3 sampleOffsetDirections[20] = vec3[](
+    vec3( 1.0,  1.0,  1.0), vec3( 1.0, -1.0,  1.0),
+    vec3(-1.0, -1.0,  1.0), vec3(-1.0,  1.0,  1.0),
+    vec3( 1.0,  1.0, -1.0), vec3( 1.0, -1.0, -1.0),
+    vec3(-1.0, -1.0, -1.0), vec3(-1.0,  1.0, -1.0),
+    vec3( 1.0,  0.0,  0.0), vec3(-1.0,  0.0,  0.0),
+    vec3( 0.0,  1.0,  0.0), vec3( 0.0, -1.0,  0.0),
+    vec3( 0.0,  0.0,  1.0), vec3( 0.0,  0.0, -1.0),
+    vec3( 1.0,  1.0,  0.0), vec3( 1.0, -1.0,  0.0),
+    vec3(-1.0, -1.0,  0.0), vec3(-1.0,  1.0,  0.0),
+    vec3( 1.0,  0.0,  1.0), vec3(-1.0,  0.0,  1.0)
+    );
+
+    for (int i = 0; i < samples; ++i)
+    {
+        vec3 samplePos = lightToFrag + sampleOffsetDirections[i] * diskRadius;
+        float closestDepth = texture(pointShadowMaps[index], samplePos).r;
+        closestDepth *= pointShadowFarPlanes[index]; // Remap to [0, farPlane]
+        if (currentDepth - bias > closestDepth)
+        shadow += 1.0;
+    }
+    shadow /= float(samples);
+    return shadow;
+}
+
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a2 = roughness * roughness * roughness * roughness;
@@ -124,6 +151,7 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+
 void main()
 {
     // --- Sample Material Textures ---
@@ -145,12 +173,11 @@ void main()
 
     // --- View Direction ---
     vec3 V = normalize(viewPos - fragPos);
-
-    // --- Compute Reflectance at Normal Incidence ---
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    // --- Accumulate Directional Light Contributions ---
     vec3 Lo = vec3(0.0);
+
+    // --- Accumulate Directional Light Contributions ---
     for (int i = 0; i < numDirectionalLights; ++i)
     {
         vec3 L = normalize(-directionalLights[i].direction);
@@ -171,9 +198,7 @@ void main()
             vec3 diffuse = kD * albedo / PI;
             vec3 radiance = directionalLights[i].color * directionalLights[i].strength * uLightStrength;
 
-            // --- Shadow Calculation ---
             float shadow = calculateShadow(fragPosLightSpace, N, L);
-            // Reduce light contribution if in shadow.
             Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
         }
     }
@@ -183,7 +208,6 @@ void main()
     {
         vec3 L = normalize(pointLights[i].position - fragPos);
         float distance = length(pointLights[i].position - fragPos);
-        // Calculate attenuation.
         float attenuation = 1.0 / (pointLights[i].constant + pointLights[i].linear * distance +
         pointLights[i].quadratic * (distance * distance));
         float NdotL = max(dot(N, L), 0.0);
@@ -200,13 +224,15 @@ void main()
             vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
             vec3 diffuse = kD * albedo / PI;
             vec3 radiance = pointLights[i].color * pointLights[i].strength * uLightStrength * attenuation;
-            Lo += (diffuse + specular) * radiance * NdotL;
+
+            float shadow = calculatePointShadow(i, fragPos);
+            Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
         }
     }
 
     // --- Ambient Lighting ---
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;
+    vec3 ambient = vec3(0);
+    vec3 color = ambient * albedo * ao + Lo;
     color = pow(color, vec3(1.0 / 2.2));
 
     outColor = vec4(color, 1.0);
