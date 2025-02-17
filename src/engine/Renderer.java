@@ -1,9 +1,6 @@
 package engine;
 
-import engine.components.Camera;
-import engine.components.LightDirectional;
-import engine.components.MeshRenderer;
-import engine.components.Skybox;
+import engine.components.*;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
 import org.joml.Matrix4f;
@@ -126,9 +123,8 @@ public class Renderer {
             shaderProgram.setUniform("viewPos", mainCamera.gameObject.transform.globalPosition);
         }
         
-        // Set the light-space matrix (so the vertex shader can compute shadow coords)
+        
         shaderProgram.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
-        // Bind the shadow map texture to texture unit 6 and set its sampler uniform.
         GL13.glActiveTexture(GL13.GL_TEXTURE6);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
         shaderProgram.setUniform("shadowMap", 6);
@@ -147,6 +143,25 @@ public class Renderer {
             shaderProgram.setUniform("directionalLights[" + i + "].color", light.color);
             shaderProgram.setUniform("directionalLights[" + i + "].strength", light.strength);
         }
+        
+        // Collect and set point lights.
+        List<LightPoint> pointLights = new ArrayList<>();
+        if (activeScene.rootGameObject != null) {
+            collectPointLights(activeScene.rootGameObject, pointLights);
+        }
+        shaderProgram.setUniform("numPointLights", pointLights.size());
+        int maxPointLights = 10;
+        for (int i = 0; i < pointLights.size() && i < maxPointLights; i++) {
+            LightPoint pLight = pointLights.get(i);
+            // The point light’s position comes from the game object’s transform.
+            shaderProgram.setUniform("pointLights[" + i + "].position", pLight.gameObject.transform.globalPosition);
+            shaderProgram.setUniform("pointLights[" + i + "].color", pLight.color);
+            shaderProgram.setUniform("pointLights[" + i + "].strength", pLight.strength);
+            shaderProgram.setUniform("pointLights[" + i + "].constant", pLight.constant);
+            shaderProgram.setUniform("pointLights[" + i + "].linear", pLight.linear);
+            shaderProgram.setUniform("pointLights[" + i + "].quadratic", pLight.quadratic);
+        }
+        
         
         // Bind and set the skybox if available.
         skybox = GameObject.getGameObjectWithComponent(Skybox.class).getComponent(Skybox.class);
@@ -245,6 +260,16 @@ public class Renderer {
             collectDirectionalLights(child, lights);
         }
     }
+    private static void collectPointLights(GameObject gameObject, List<LightPoint> lights) {
+        LightPoint light = gameObject.getComponent(LightPoint.class);
+        if (light != null) {
+            lights.add(light);
+        }
+        for (GameObject child : gameObject.children) {
+            collectPointLights(child, lights);
+        }
+    }
+    
     
     // Computes the projection matrix for the active camera.
     private static Matrix4f getProjectionMatrix(Camera camera) {

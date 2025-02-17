@@ -7,19 +7,40 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameObject
-{
+/**
+ * Represents an object within the game scene.
+ * <p>
+ * A GameObject can have components that define its behavior,
+ * a transform that defines its position, rotation, and scale relative to the scene origin,
+ * and a hierarchy of child GameObjects.
+ * </p>
+ */
+public class GameObject {
+    /** Unique identifier for the GameObject. */
     private final int id;
+    /** Name of the GameObject. */
     private String name;
-    public Transform transform; // Transform relative to Scene origin (0, 0, 0)
+    /** Transform representing position, rotation, and scale relative to the scene origin. */
+    public Transform transform;
     
+    /** List of components attached to this GameObject. */
     private List<Component> components;
-    public List<GameObject> children; // List of child GameObjects
+    /** List of child GameObjects. */
+    public List<GameObject> children;
+    /** Parent GameObject, if any. */
     public GameObject parent;
     
-    // Constructor with only a name
-    public GameObject(String name)
-    {
+    /**
+     * Constructs a new GameObject with the specified name.
+     * <p>
+     * This constructor initializes a new Transform with default values,
+     * an empty list of components, and an empty list of children.
+     * The GameObject is also registered with the GameObjectManager.
+     * </p>
+     *
+     * @param name the name of the GameObject.
+     */
+    public GameObject(String name) {
         this.id = GameObjectManager.lastId;
         this.name = name;
         this.components = new ArrayList<>();
@@ -29,9 +50,17 @@ public class GameObject
         GameObjectManager.putGameObject(this);
     }
     
-    // Constructor with name and transform
-    public GameObject(String name, Transform transform)
-    {
+    /**
+     * Constructs a new GameObject with the specified name and transform.
+     * <p>
+     * This constructor initializes an empty list of components and children,
+     * and registers the GameObject with the GameObjectManager.
+     * </p>
+     *
+     * @param name the name of the GameObject.
+     * @param transform the Transform for the GameObject.
+     */
+    public GameObject(String name, Transform transform) {
         this.id = GameObjectManager.lastId;
         this.name = name;
         this.components = new ArrayList<>();
@@ -40,116 +69,171 @@ public class GameObject
         GameObjectManager.putGameObject(this);
     }
     
-    // Getter for name
-    public String getName()
-    {
+    /**
+     * Retrieves the name of the GameObject.
+     *
+     * @return the GameObject's name.
+     */
+    public String getName() {
         return name;
     }
     
-    // Add a child to this GameObject
+    /**
+     * Adds a child GameObject to this GameObject.
+     * <p>
+     * The child's parent is set to this GameObject, and its transform is linked
+     * to this GameObject's transform.
+     * </p>
+     *
+     * @param child the child GameObject to add.
+     */
     public void addChild(GameObject child) {
-        if(child != null) {
+        if (child != null) {
             child.parent = this;
-            // IMPORTANT: Link the child's transform to its parent's transform
+            // Link the child's transform to its parent's transform.
             child.transform.setParent(this.transform);
             children.add(child);
         }
     }
     
-    
-    // Remove a child
-    public void removeChild(GameObject child)
-    {
-        if(children.remove(child))
-        {
-            child.parent = null; // Clear the parent of the removed child
+    /**
+     * Removes a child GameObject from this GameObject.
+     * <p>
+     * If the child is successfully removed, its parent is set to null.
+     * </p>
+     *
+     * @param child the child GameObject to remove.
+     */
+    public void removeChild(GameObject child) {
+        if (children.remove(child)) {
+            child.parent = null; // Clear the parent reference.
         }
     }
     
-    // Recursively print hierarchy for debugging
-    public void printHierarchy(String prefix)
-    {
+    /**
+     * Recursively prints the hierarchy of this GameObject and its children.
+     * <p>
+     * Each level of hierarchy is indented using the provided prefix.
+     * </p>
+     *
+     * @param prefix the string prefix used for indentation.
+     */
+    public void printHierarchy(String prefix) {
         System.out.println(prefix + name);
-        for(GameObject child : children)
-        {
-            child.printHierarchy(prefix + "    "); // Indent for child objects
+        for (GameObject child : children) {
+            child.printHierarchy(prefix + "    ");
         }
     }
     
-    public <T extends Component> void addComponent(Class<T> componentClass)
-    {
-        try
-        {
+    /**
+     * Adds a component of the specified class to this GameObject.
+     * <p>
+     * The component is instantiated using its no-argument constructor,
+     * and its GameObject reference is set before it is added.
+     * </p>
+     *
+     * @param <T> the type of the component.
+     * @param componentClass the class of the component to add.
+     */
+    public <T extends Component> void addComponent(Class<T> componentClass) {
+        try {
             T component = componentClass.getDeclaredConstructor().newInstance();
-            component.setGameObject(this); // Link the component to the GameObject BEFORE using it
+            component.setGameObject(this); // Link the component to this GameObject.
             components.add(component);
-        } catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
-    
-    
-    public void addComponent(Component component)
-    {
-        if(component != null)
-        {
+    /**
+     * Adds the specified component instance to this GameObject.
+     * <p>
+     * The component's GameObject reference is set to this GameObject.
+     * </p>
+     *
+     * @param component the component instance to add.
+     */
+    public void addComponent(Component component) {
+        if (component != null) {
             components.add(component);
-            component.setGameObject(this); // Link the component to the GameObject
+            component.setGameObject(this); // Link the component to this GameObject.
         }
     }
     
-    public List<Component> getComponents()
-    {
+    /**
+     * Retrieves the list of components attached to this GameObject.
+     *
+     * @return a list of components.
+     */
+    public List<Component> getComponents() {
         return components;
     }
     
-    public <T extends Component> T getComponent(Class<T> componentClass)
-    {
-        for(Component component : components)
-        {
-            if(componentClass.isInstance(component))
-            {
-                return componentClass.cast(component); // Safely cast the component
+    /**
+     * Retrieves a component of the specified class from this GameObject.
+     * <p>
+     * If multiple components of the specified type exist, the first one encountered is returned.
+     * </p>
+     *
+     * @param <T> the type of the component.
+     * @param componentClass the class of the component to retrieve.
+     * @return the component instance if found, otherwise null.
+     */
+    public <T extends Component> T getComponent(Class<T> componentClass) {
+        for (Component component : components) {
+            if (componentClass.isInstance(component)) {
+                return componentClass.cast(component); // Safely cast the component.
             }
         }
-        return null; // Return null if no matching component is found
+        return null; // Return null if no matching component is found.
     }
     
-    public int getId()
-    {
+    /**
+     * Retrieves the unique identifier of this GameObject.
+     *
+     * @return the GameObject's ID.
+     */
+    public int getId() {
         return this.id;
     }
     
+    /**
+     * Returns a string representation of the GameObject.
+     * <p>
+     * The representation includes the GameObject's name and a list of its component types.
+     * </p>
+     *
+     * @return a string representation of the GameObject.
+     */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(name).append("\n");
-        for(Component component : components)
-        {
+        for (Component component : components) {
             sb.append("    - ").append(component.getClass().getSimpleName()).append("\n");
         }
         return sb.toString();
     }
     
-    public static <T extends Component> GameObject getGameObjectWithComponent(Class<T> componentClass)
-    {
-        for(GameObject gameObject : Engine.activeScene.getGameObjects())
-        {
+    /**
+     * Recursively searches for a GameObject that contains a component of the specified class.
+     * <p>
+     * The search is performed on the active scene's game objects and their children.
+     * </p>
+     *
+     * @param <T> the type of the component.
+     * @param componentClass the class of the component to search for.
+     * @return the first GameObject containing the component, or null if not found.
+     */
+    public static <T extends Component> GameObject getGameObjectWithComponent(Class<T> componentClass) {
+        for (GameObject gameObject : Engine.activeScene.getGameObjects()) {
             Component component = gameObject.getComponent(componentClass);
-            if(component != null)
-            {
+            if (component != null) {
                 return gameObject;
-            }
-            else if(!gameObject.children.isEmpty())
-            {
-                for(GameObject child : gameObject.children) // Fixed this line
-                {
-                    GameObject result = child.getGameObjectWithComponent(componentClass); // Corrected recursive call
-                    if(result != null)
-                    {
+            } else if (!gameObject.children.isEmpty()) {
+                for (GameObject child : gameObject.children) {
+                    GameObject result = child.getGameObjectWithComponent(componentClass);
+                    if (result != null) {
                         return result;
                     }
                 }
@@ -157,5 +241,4 @@ public class GameObject
         }
         return null;
     }
-    
 }

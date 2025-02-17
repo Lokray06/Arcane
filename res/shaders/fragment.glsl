@@ -43,6 +43,19 @@ struct DirectionalLight {
 uniform int numDirectionalLights;
 uniform DirectionalLight directionalLights[MAX_DIR_LIGHTS];
 
+// ----- Point Lights -----
+#define MAX_POINT_LIGHTS 10
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float strength;
+    float constant;
+    float linear;
+    float quadratic;
+};
+uniform int numPointLights;
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
+
 // ----- Shadow Map -----
 uniform sampler2D shadowMap;
 
@@ -147,7 +160,6 @@ void main()
 
         if (NdotL > 0.0)
         {
-            // (Compute specular & diffuse using your PBR equations.)
             float D = DistributionGGX(N, H, roughness);
             float G = GeometrySmith(N, V, L, roughness);
             vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
@@ -163,6 +175,32 @@ void main()
             float shadow = calculateShadow(fragPosLightSpace, N, L);
             // Reduce light contribution if in shadow.
             Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
+        }
+    }
+
+    // --- Accumulate Point Light Contributions ---
+    for (int i = 0; i < numPointLights; ++i)
+    {
+        vec3 L = normalize(pointLights[i].position - fragPos);
+        float distance = length(pointLights[i].position - fragPos);
+        // Calculate attenuation.
+        float attenuation = 1.0 / (pointLights[i].constant + pointLights[i].linear * distance +
+        pointLights[i].quadratic * (distance * distance));
+        float NdotL = max(dot(N, L), 0.0);
+        if (NdotL > 0.0)
+        {
+            vec3 H = normalize(V + L);
+            float D = DistributionGGX(N, H, roughness);
+            float G = GeometrySmith(N, V, L, roughness);
+            vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+            vec3 numerator = D * G * F;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+            vec3 specular = numerator / denominator;
+            vec3 kS = F;
+            vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+            vec3 diffuse = kD * albedo / PI;
+            vec3 radiance = pointLights[i].color * pointLights[i].strength * uLightStrength * attenuation;
+            Lo += (diffuse + specular) * radiance * NdotL;
         }
     }
 
