@@ -60,7 +60,7 @@ vec3 GetSkyboxAmbient(vec3 normal) {
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-viewDir, normal);
     vec3 ambientColor = texture(skyboxAmbient.cubemap, reflectDir).rgb;
-    return ambientColor * 1;
+    return ambientColor * skyboxAmbient.strength;
 }
 
 // ----- Function: Shadow Calculation (PCF) -----
@@ -136,29 +136,12 @@ void main()
     float ao = texture(uAO, fragTexCoord).r;
 
     // --- Normal Mapping ---
-    // Get the interpolated world-space normal.
     vec3 normalWorld = normalize(vNormal);
-
-    // Sample the normal from the normal map and remap from [0,1] to [-1,1].
     vec3 tangentNormal = texture(uNormal, fragTexCoord).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
-    // Uncomment the next line if your normal map is using an opposite Y convention.
-    // tangentNormal.y = -tangentNormal.y;
-
-    // Re-orthogonalize the tangent relative to the normal.
-    vec3 T = normalize(vTangent - dot(vTangent, normalWorld) * normalWorld);
-    // Recompute the bitangent so that T, B, N form an orthonormal basis.
-    vec3 B = normalize(cross(normalWorld, T));
-
-    // Construct the TBN matrix with T, B, and N as columns.
-    mat3 TBN = mat3(T, B, normalWorld);
-
-    // Transform the normal from tangent space to world space.
+    mat3 TBN = mat3(normalize(vTangent), normalize(vBitangent), normalWorld);
     vec3 mappedNormal = normalize(TBN * tangentNormal);
-
-    // Mix between the original geometry normal and the mapped normal based on strength.
     vec3 N = normalize(mix(normalWorld, mappedNormal, uNormalMapStrength));
-
 
     // --- View Direction ---
     vec3 V = normalize(viewPos - fragPos);
