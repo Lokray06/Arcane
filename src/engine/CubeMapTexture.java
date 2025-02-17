@@ -15,27 +15,54 @@ import org.lwjgl.system.MemoryStack;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+/**
+ * The {@code CubeMapTexture} class encapsulates a cubemap texture.
+ * <p>
+ * It supports loading a cubemap texture either from a predefined layout (4x3 grid)
+ * or by converting an equirectangular image into a cubemap.
+ * </p>
+ */
 public class CubeMapTexture {
-    private int textureID = 0; // 0 means not yet initialized
+    /** The OpenGL texture ID for the cubemap (0 if not yet initialized). */
+    private int textureID = 0;
+    /** The path to the texture image file. */
     private final String texturePath;
-    private boolean loaded = false; // Indicates if the texture has been loaded
-    private boolean isCubemap = false; // if true, treat texturePath as an equirectangular image and convert it
+    /** Flag indicating whether the texture has been loaded. */
+    private boolean loaded = false;
+    /** Flag indicating if the provided image is an equirectangular image that should be converted to a cubemap. */
+    private boolean isCubemap = false;
     
-    // Default constructor – assumes the texture is already laid out as a cubemap (4x3 layout)
+    /**
+     * Constructs a {@code CubeMapTexture} assuming the image is already a cubemap (using a 4x3 layout).
+     *
+     * @param texturePath the path to the cubemap texture image.
+     */
     public CubeMapTexture(String texturePath) {
         this(texturePath, false);
     }
     
-    // New constructor: if isCubemap is true, load as equirectangular and convert.
+    /**
+     * Constructs a {@code CubeMapTexture}.
+     *
+     * @param texturePath the path to the texture image.
+     * @param isCubemap   {@code true} if the texture should be loaded as an equirectangular image and converted to a cubemap.
+     */
     public CubeMapTexture(String texturePath, boolean isCubemap) {
         this.texturePath = texturePath;
         this.isCubemap = isCubemap;
     }
     
+    /**
+     * Loads the cubemap texture.
+     * <p>
+     * If {@code isCubemap} is false, it loads the image from a 4x3 layout.
+     * Otherwise, it converts an equirectangular image into a cubemap.
+     * </p>
+     */
     private void loadCubeMap() {
         if (loaded) return; // Prevent reloading
         
-        // If the flag is true, we load the texture as an equirectangular image and convert it.
+        // If the texture is not already a cubemap layout, load as equirectangular and convert.
         if (!isCubemap) {
             loadEquirectangularToCubemap();
             return;
@@ -60,7 +87,7 @@ public class CubeMapTexture {
             int imgHeight = height.get(0);
             int faceSize = imgWidth / 4; // Assuming the UV layout is a 4x3 grid
             
-            // Define face positions in the UV map:
+            // Define face positions in the UV map.
             int[][] faceCoords = {
                     {2, 1}, // Right
                     {0, 1}, // Left
@@ -92,7 +119,7 @@ public class CubeMapTexture {
             STBImage.stbi_image_free(image);
         }
         
-        // Set texture parameters
+        // Set texture parameters.
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
@@ -103,7 +130,17 @@ public class CubeMapTexture {
         loaded = true;
     }
     
-    // Helper: extracts one face (given by the offset) from the overall image.
+    /**
+     * Extracts a single face from the overall cubemap image.
+     *
+     * @param image    the full image buffer.
+     * @param imgWidth the width of the full image.
+     * @param imgHeight the height of the full image.
+     * @param xOffset  the x offset for the face.
+     * @param yOffset  the y offset for the face.
+     * @param faceSize the size of the face.
+     * @return a {@code ByteBuffer} containing the face data.
+     */
     private ByteBuffer extractFace(ByteBuffer image, int imgWidth, int imgHeight, int xOffset, int yOffset, int faceSize) {
         int bytesPerPixel = 4; // RGBA
         ByteBuffer faceData = BufferUtils.createByteBuffer(faceSize * faceSize * bytesPerPixel);
@@ -118,7 +155,13 @@ public class CubeMapTexture {
         return faceData;
     }
     
-    // This method loads an equirectangular image and converts it into a cubemap texture.
+    /**
+     * Loads an equirectangular image and converts it into a cubemap texture.
+     * <p>
+     * This method creates a framebuffer, renders the equirectangular texture onto each cubemap face,
+     * and generates mipmaps for the resulting cubemap.
+     * </p>
+     */
     private void loadEquirectangularToCubemap() {
         // 1. Load the equirectangular texture from file.
         STBImage.stbi_set_flip_vertically_on_load(true);
@@ -231,7 +274,7 @@ public class CubeMapTexture {
         int cubeVAO = GL30.glGenVertexArrays();
         int cubeVBO = GL15.glGenBuffers();
         float[] cubeVertices = {
-                // positions for a 36-vertex cube
+                // positions for a 36-vertex cube.
                 -1.0f,  1.0f, -1.0f,
                 -1.0f, -1.0f, -1.0f,
                 1.0f, -1.0f, -1.0f,
@@ -312,23 +355,39 @@ public class CubeMapTexture {
         loaded = true;
     }
     
+    /**
+     * Ensures the cubemap texture is loaded.
+     */
     private void ensureLoaded() {
         if (!loaded) {
             loadCubeMap();
         }
     }
     
+    /**
+     * Binds the cubemap texture to the specified texture unit.
+     *
+     * @param unit the texture unit to bind to.
+     */
     public void bind(int unit) {
         ensureLoaded();
         GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
         GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, textureID);
     }
     
+    /**
+     * Returns the cubemap texture ID.
+     *
+     * @return the texture ID.
+     */
     public int getID() {
         ensureLoaded();
         return textureID;
     }
     
+    /**
+     * Deletes the cubemap texture and releases its OpenGL resources.
+     */
     public void delete() {
         if (textureID != 0) {
             GL11.glDeleteTextures(textureID);

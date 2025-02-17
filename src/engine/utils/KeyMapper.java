@@ -4,13 +4,18 @@ import java.util.HashMap;
 
 import static org.lwjgl.glfw.GLFW.*;
 
-public class KeyMapper
-{
-    // Create a HashMap for key names to GLFW key codes
+/**
+ * The {@code KeyMapper} class provides a mapping between common key names and their GLFW key codes.
+ * <p>
+ * This utility enables using string identifiers (such as "up", "space", or "a") to access the corresponding key codes.
+ * </p>
+ */
+public class KeyMapper {
+    /** A mapping from key names to GLFW key codes. */
     private static final HashMap<String, Integer> keyNamesToCodes = new HashMap<>();
-
+    
     static {
-        // Initialize the HashMap with key names to GLFW key codes
+        // Initialize the HashMap with key names to GLFW key codes.
         keyNamesToCodes.put("up", GLFW_KEY_UP);
         keyNamesToCodes.put("down", GLFW_KEY_DOWN);
         keyNamesToCodes.put("left", GLFW_KEY_LEFT);
@@ -107,8 +112,13 @@ public class KeyMapper
         keyNamesToCodes.put("numpad_enter", GLFW_KEY_KP_ENTER);
         keyNamesToCodes.put("numpad_decimal", GLFW_KEY_KP_DECIMAL);
     }
-
-    // Method to get key code by key name
+    
+    /**
+     * Retrieves the GLFW key code corresponding to the given key name.
+     *
+     * @param keyName the name of the key.
+     * @return the key code, or {@code null} if the key name is not mapped.
+     */
     public static Integer getKeyCode(String keyName) {
         return keyNamesToCodes.get(keyName);
     }

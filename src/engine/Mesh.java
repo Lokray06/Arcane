@@ -1,7 +1,7 @@
 package engine;
 
-import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.joml.Vector2f;
 
 import java.io.*;
 import java.util.*;
@@ -11,14 +11,32 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
+/**
+ * Represents a 3D mesh, typically loaded from an OBJ file.
+ * <p>
+ * A Mesh contains vertex data, normals, texture coordinates (UVs), and face definitions.
+ * It also manages OpenGL buffers for rendering.
+ * </p>
+ */
 public class Mesh {
+    /** Array of vertex positions. */
     public Vector3f[] vertices;
+    /** Array of vertex normals. */
     public Vector3f[] normals;
+    /** Array of texture coordinates. */
     public Vector2f[] uvs;
+    /**
+     * 3D array representing faces.
+     * <p>
+     * Each face is an array of vertices, where each vertex is represented by an array of indices:
+     * [vertex index, uv index, normal index].
+     * </p>
+     */
     public int[][][] faces;
+    /** Name of the mesh. */
     public String meshName;
     
-    // OpenGL handles
+    // OpenGL handles.
     private int vaoId;
     private int vboId;
     private int eboId;
@@ -28,9 +46,9 @@ public class Mesh {
     private int[] indices;
     
     /**
-     * Constructor that loads a mesh from an OBJ file.
+     * Constructs a Mesh by loading an OBJ file.
      *
-     * @param path Path to the OBJ file.
+     * @param path the path to the OBJ file.
      */
     public Mesh(String path) {
         List<Vector3f> verticesList = new ArrayList<>();
@@ -88,6 +106,7 @@ public class Mesh {
                                 faceIndices[i][2] = (indices.length > 2 && !indices[2].isEmpty()) ? Integer.parseInt(indices[2]) - 1 : -1;
                             }
                             
+                            // If the face has 4 vertices, split it into two triangles.
                             if (faceIndices.length == 4) {
                                 facesList.add(new int[][]{faceIndices[0], faceIndices[1], faceIndices[2]});
                                 facesList.add(new int[][]{faceIndices[0], faceIndices[2], faceIndices[3]});
@@ -110,10 +129,10 @@ public class Mesh {
     }
     
     /**
-     * Constructor that initializes the mesh directly from vertex and face data.
+     * Constructs a Mesh from provided vertex positions and face indices.
      *
-     * @param vertices Array of vertex positions.
-     * @param faces    Array of face indices.
+     * @param vertices an array of vertex positions.
+     * @param faces    a 3D array of face indices.
      */
     public Mesh(Vector3f[] vertices, int[][][] faces) {
         this.vertices = vertices;
@@ -122,7 +141,10 @@ public class Mesh {
     }
     
     /**
-     * Initializes OpenGL buffers.
+     * Initializes the mesh by creating and binding OpenGL buffers.
+     * <p>
+     * This method interleaves vertex data and uploads it to the GPU.
+     * </p>
      */
     public void initMesh() {
         if (initialized) return;
@@ -204,6 +226,12 @@ public class Mesh {
         initialized = true;
     }
     
+    /**
+     * Renders the mesh.
+     * <p>
+     * If the mesh is not already initialized, it will be initialized first.
+     * </p>
+     */
     public void render() {
         if (!initialized) initMesh();
         glBindVertexArray(vaoId);
@@ -211,6 +239,9 @@ public class Mesh {
         glBindVertexArray(0);
     }
     
+    /**
+     * Releases the OpenGL buffers associated with this mesh.
+     */
     public void cleanup() {
         if (initialized) {
             glDeleteBuffers(vboId);
@@ -219,6 +250,11 @@ public class Mesh {
         }
     }
     
+    /**
+     * Returns a string representation of the mesh.
+     *
+     * @return a string describing the mesh.
+     */
     @Override
     public String toString() {
         return "Mesh: " + (meshName != null ? meshName : "Unnamed") +

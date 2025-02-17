@@ -15,6 +15,13 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The Renderer class is responsible for rendering the scene.
+ * <p>
+ * It manages shader programs, sets up shadow mapping, renders the scene geometry,
+ * and applies lighting and skybox effects.
+ * </p>
+ */
 public class Renderer {
     // Main shader program used for scene rendering.
     private static ShaderProgram shaderProgram;
@@ -36,6 +43,10 @@ public class Renderer {
     
     private static Skybox skybox;
     
+    /**
+     * Initializes the renderer by loading shader programs and setting up
+     * the shadow map framebuffer and texture.
+     */
     public static void init() {
         // --- Load Main Shader ---
         String vertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl"));
@@ -66,7 +77,7 @@ public class Renderer {
         FloatBuffer borderColor = BufferUtils.createFloatBuffer(4).put(new float[]{1f,1f,1f,1f});
         borderColor.flip();
         GL11.glTexParameterfv(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
-        // Attach texture as the framebuffer's depth buffer
+        // Attach texture as the framebuffer's depth buffer.
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
         GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, shadowMap, 0);
         GL11.glDrawBuffer(GL11.GL_NONE);
@@ -77,6 +88,18 @@ public class Renderer {
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
     }
     
+    /**
+     * Renders the active scene from the perspective of the active camera.
+     * <p>
+     * This method performs the following passes:
+     * <ol>
+     *   <li>Shadow map pass (renders scene depth from the light's perspective).</li>
+     *   <li>Main scene pass (renders scene with lighting and shadows).</li>
+     * </ol>
+     * </p>
+     *
+     * @param activeScene the scene to render.
+     */
     public static void render(Scene activeScene) {
         Camera mainCamera = getActiveCamera(activeScene);
         if (mainCamera == null) {
@@ -108,7 +131,7 @@ public class Renderer {
         GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
         depthShader.use();
         depthShader.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
-        // Render scene geometry (only depth is written)
+        // Render scene geometry (only depth is written).
         renderSceneForShadows(activeScene, depthShader);
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
         
@@ -122,7 +145,6 @@ public class Renderer {
             shaderProgram.setUniformMat4(VIEW_UNIFORM, mainCamera.viewMatrix);
             shaderProgram.setUniform("viewPos", mainCamera.gameObject.transform.globalPosition);
         }
-        
         
         shaderProgram.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
         GL13.glActiveTexture(GL13.GL_TEXTURE6);
@@ -162,15 +184,13 @@ public class Renderer {
             shaderProgram.setUniform("pointLights[" + i + "].quadratic", pLight.quadratic);
         }
         
-        
         // Bind and set the skybox if available.
         skybox = GameObject.getGameObjectWithComponent(Skybox.class).getComponent(Skybox.class);
         if (skybox != null && skybox.getCubeMap() != null) {
             skybox.getCubeMap().bind(GL13.GL_TEXTURE5);
             shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
             shaderProgram.setUniform("skyboxAmbient.strength", 1);
-        }
-        else {
+        } else {
             System.err.println("Couldn't load skybox");
         }
         
@@ -180,14 +200,24 @@ public class Renderer {
         }
     }
     
-    // Renders the scene geometry for the shadow pass.
+    /**
+     * Renders the scene geometry for the shadow pass.
+     *
+     * @param activeScene the scene to render for shadows.
+     * @param depthShader the shader program used for rendering depth.
+     */
     private static void renderSceneForShadows(Scene activeScene, ShaderProgram depthShader) {
         if (activeScene.rootGameObject != null) {
             renderForShadowsRecursive(activeScene.rootGameObject, depthShader);
         }
     }
     
-    // Recursive helper for shadow rendering.
+    /**
+     * Recursively renders game objects for the shadow pass.
+     *
+     * @param gameObject the current game object.
+     * @param depthShader the depth shader program.
+     */
     private static void renderForShadowsRecursive(GameObject gameObject, ShaderProgram depthShader) {
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
         if (meshRenderer != null && meshRenderer.mesh != null) {
@@ -201,7 +231,11 @@ public class Renderer {
         }
     }
     
-    // Main scene recursive rendering (unchanged from your version).
+    /**
+     * Recursively renders the scene objects.
+     *
+     * @param gameObject the current game object to render.
+     */
     private static void renderRecursive(GameObject gameObject) {
         Camera mainCamera = getActiveCamera(Engine.activeScene);
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
@@ -250,7 +284,12 @@ public class Renderer {
         }
     }
     
-    // Helper: Recursively collect all directional lights.
+    /**
+     * Recursively collects all directional lights from the scene hierarchy.
+     *
+     * @param gameObject the current game object.
+     * @param lights the list to collect directional lights into.
+     */
     private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {
         LightDirectional light = gameObject.getComponent(LightDirectional.class);
         if (light != null) {
@@ -260,6 +299,13 @@ public class Renderer {
             collectDirectionalLights(child, lights);
         }
     }
+    
+    /**
+     * Recursively collects all point lights from the scene hierarchy.
+     *
+     * @param gameObject the current game object.
+     * @param lights the list to collect point lights into.
+     */
     private static void collectPointLights(GameObject gameObject, List<LightPoint> lights) {
         LightPoint light = gameObject.getComponent(LightPoint.class);
         if (light != null) {
@@ -270,8 +316,12 @@ public class Renderer {
         }
     }
     
-    
-    // Computes the projection matrix for the active camera.
+    /**
+     * Computes the projection matrix for the active camera.
+     *
+     * @param camera the active camera.
+     * @return the projection matrix.
+     */
     private static Matrix4f getProjectionMatrix(Camera camera) {
         Matrix4f projectionMatrix = new Matrix4f();
         float aspectRatio = camera.aspectRatio;
@@ -284,6 +334,12 @@ public class Renderer {
         return projectionMatrix;
     }
     
+    /**
+     * Retrieves the active camera from the scene.
+     *
+     * @param activeScene the scene to search.
+     * @return the active Camera, or null if none is active.
+     */
     private static Camera getActiveCamera(Scene activeScene) {
         for (GameObject gameObject : activeScene.getGameObjects()) {
             Camera camera = gameObject.getComponent(Camera.class);
@@ -294,6 +350,12 @@ public class Renderer {
         return null;
     }
     
+    /**
+     * Retrieves the primary directional light from the scene.
+     *
+     * @param activeScene the scene to search.
+     * @return the first found directional light, or null if none exist.
+     */
     private static LightDirectional getMainDirectionalLight(Scene activeScene) {
         List<LightDirectional> directionalLights = new ArrayList<>();
         if (activeScene.rootGameObject != null) {
@@ -302,6 +364,9 @@ public class Renderer {
         return !directionalLights.isEmpty() ? directionalLights.get(0) : null;
     }
     
+    /**
+     * Cleans up the renderer by releasing shader program resources.
+     */
     public static void cleanup() {
         shaderProgram.cleanup();
         depthShader.cleanup();

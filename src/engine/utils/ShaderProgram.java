@@ -9,9 +9,23 @@ import java.nio.FloatBuffer;
 
 import static org.lwjgl.opengl.GL20.*;
 
+/**
+ * The {@code ShaderProgram} class encapsulates an OpenGL shader program.
+ * <p>
+ * It provides methods for compiling vertex and fragment shaders, linking them into a program,
+ * and setting uniform values.
+ * </p>
+ */
 public class ShaderProgram {
+    /** The OpenGL program ID. */
     private final int programId;
     
+    /**
+     * Creates a new shader program from the provided vertex and fragment shader source code.
+     *
+     * @param vertexSource   the source code for the vertex shader.
+     * @param fragmentSource the source code for the fragment shader.
+     */
     public ShaderProgram(String vertexSource, String fragmentSource) {
         int vertexShaderId = compileShader(vertexSource, GL_VERTEX_SHADER);
         int fragmentShaderId = compileShader(fragmentSource, GL_FRAGMENT_SHADER);
@@ -20,7 +34,7 @@ public class ShaderProgram {
         glAttachShader(programId, fragmentShaderId);
         glLinkProgram(programId);
         
-        // Check linking status
+        // Check linking status.
         int linked = glGetProgrami(programId, GL_LINK_STATUS);
         if (linked == 0) {
             String log = glGetProgramInfoLog(programId);
@@ -34,22 +48,32 @@ public class ShaderProgram {
         glDeleteShader(fragmentShaderId);
     }
     
+    /**
+     * Compiles a shader of the specified type from source code.
+     *
+     * @param source the shader source code.
+     * @param type   the type of shader (e.g. {@code GL_VERTEX_SHADER} or {@code GL_FRAGMENT_SHADER}).
+     * @return the shader ID.
+     */
     private int compileShader(String source, int type) {
         int shaderId = glCreateShader(type);
         glShaderSource(shaderId, source);
         glCompileShader(shaderId);
         
-        // Check compile status
+        // Check compile status.
         int compiled = glGetShaderi(shaderId, GL_COMPILE_STATUS);
         if (compiled == 0) {
             String log = glGetShaderInfoLog(shaderId);
-            throw new RuntimeException("Error compiling shader ("
-                                       + (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
+            throw new RuntimeException("Error compiling shader (" +
+                                       (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") + "): " + log);
         }
         
         return shaderId;
     }
     
+    /**
+     * Sets this shader program as the active program.
+     */
     public void use() {
         glUseProgram(programId);
     }
@@ -61,20 +85,44 @@ public class ShaderProgram {
         glUseProgram(0);
     }
     
+    /**
+     * Retrieves the location of a uniform variable in the shader program.
+     *
+     * @param name the name of the uniform variable.
+     * @return the uniform location.
+     */
     public int getUniformLocation(String name) {
         return glGetUniformLocation(programId, name);
     }
     
+    /**
+     * Sets an integer uniform value.
+     *
+     * @param name  the name of the uniform variable.
+     * @param value the integer value.
+     */
     public void setUniform(String name, int value) {
         int location = glGetUniformLocation(programId, name);
         glUniform1i(location, value);
     }
     
+    /**
+     * Sets a float uniform value.
+     *
+     * @param name  the name of the uniform variable.
+     * @param value the float value.
+     */
     public void setUniform(String name, float value) {
         int location = glGetUniformLocation(programId, name);
         glUniform1f(location, value);
     }
     
+    /**
+     * Sets a Vector3f uniform value.
+     *
+     * @param name  the name of the uniform variable.
+     * @param value the {@link Vector3f} value.
+     */
     public void setUniform(String name, Vector3f value) {
         int location = glGetUniformLocation(programId, name);
         if(location != -1) {
@@ -82,6 +130,12 @@ public class ShaderProgram {
         }
     }
     
+    /**
+     * Sets a Matrix4f uniform value.
+     *
+     * @param name   the name of the uniform variable.
+     * @param matrix the {@link Matrix4f} value.
+     */
     public void setUniformMat4(String name, Matrix4f matrix) {
         int location = getUniformLocation(name);
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -90,15 +144,23 @@ public class ShaderProgram {
         }
     }
     
-    public void cleanup() {
-        glDeleteProgram(programId);
-    }
-    
-    public void setUniform(String name, Vector2f value)
-    {
+    /**
+     * Sets a Vector2f uniform value.
+     *
+     * @param name  the name of the uniform variable.
+     * @param value the {@link Vector2f} value.
+     */
+    public void setUniform(String name, Vector2f value) {
         int location = glGetUniformLocation(programId, name);
         if(location != -1) {
             glUniform2f(location, value.x, value.y);
         }
+    }
+    
+    /**
+     * Deletes the shader program and releases its OpenGL resources.
+     */
+    public void cleanup() {
+        glDeleteProgram(programId);
     }
 }

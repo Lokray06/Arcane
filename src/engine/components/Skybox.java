@@ -11,34 +11,66 @@ import org.joml.Vector3f;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE_CUBE_MAP;
 
+/**
+ * The {@code Skybox} component represents a skybox in the scene.
+ * <p>
+ * It contains a cubemap texture and provides a method to render the skybox.
+ * The view matrix is modified to remove translation so that the skybox appears infinitely distant.
+ * </p>
+ */
 public class Skybox extends Component {
+    /** The cubemap texture used for the skybox. */
     private CubeMapTexture cubeMap;
-    // This ambient color will be used to light the scene.
+    /** The ambient color applied to the skybox lighting. */
     private Vector3f ambientColor;
     
     /**
-     * Expects an array of 6 image file paths in the order:
-     * right, left, top, bottom, front, back.
+     * Constructs a Skybox component with the specified cubemap texture.
+     *
+     * @param cubeMap the cubemap texture.
      */
     public Skybox(CubeMapTexture cubeMap) {
         this.cubeMap = cubeMap;
-        ambientColor = new Vector3f(0.2f, 0.2f, 0.2f); // Default ambient light
+        ambientColor = new Vector3f(0.2f, 0.2f, 0.2f); // Default ambient light.
     }
     
+    /**
+     * Returns the cubemap texture.
+     *
+     * @return the cubemap texture.
+     */
     public CubeMapTexture getCubeMap() {
         return cubeMap;
     }
     
+    /**
+     * Returns the ambient color.
+     *
+     * @return the ambient color.
+     */
     public Vector3f getAmbientColor() {
         return ambientColor;
     }
     
+    /**
+     * Sets the ambient color.
+     *
+     * @param ambientColor the new ambient color.
+     */
     public void setAmbientColor(Vector3f ambientColor) {
         this.ambientColor.set(ambientColor);
     }
     
     /**
-     * Renders the skybox. The view matrix should have its translation removed.
+     * Renders the skybox.
+     * <p>
+     * The view matrix is modified to remove translation before passing to the shader.
+     * The cubemap is bound and a cube mesh is rendered to display the skybox.
+     * </p>
+     *
+     * @param skyboxShader the shader program used for the skybox.
+     * @param view         the view matrix (with translation removed).
+     * @param projection   the projection matrix.
      */
     public void render(ShaderProgram skyboxShader, Matrix4f view, Matrix4f projection) {
         // Remove translation from the view matrix.

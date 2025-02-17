@@ -5,6 +5,14 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
+/**
+ * A simple utility class to check and print the OpenGL version, renderer, vendor,
+ * and GLSL version.
+ * <p>
+ * This class initializes GLFW, creates a window, sets up an OpenGL context, queries
+ * the OpenGL version information, prints it, and then cleans up.
+ * </p>
+ */
 public class OpenGLVersionCheck {
     public static void main(String[] args) {
         if (!GLFW.glfwInit()) {
