@@ -44,52 +44,12 @@ struct DirectionalLight {
 uniform int numDirectionalLights;
 uniform DirectionalLight directionalLights[MAX_DIR_LIGHTS];
 
-// ----- Cascaded Shadow Mapping Uniforms -----
-#define NUM_CASCADES 4
-uniform sampler2D shadowMaps[NUM_CASCADES];
-uniform mat4 lightSpaceMatrices[NUM_CASCADES];
-uniform float cascadeSplits[NUM_CASCADES];
-
 // Constants and multipliers.
 const float PI = 3.14159265359;
 float biasMultiplier = 0.00001;
 float strengthMultiplier = 0.01;
 
-// ----- Function: Calculate Skybox Ambient Lighting -----
-vec3 GetSkyboxAmbient(vec3 normal) {
-    vec3 viewDir = normalize(viewPos - fragPos);
-    vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 ambientColor = texture(skyboxAmbient.cubemap, reflectDir).rgb;
-    return ambientColor * 0.1;
-}
-
-// ----- Function: Shadow Calculation (PCF) -----
-// Now uses the perturbed normal (N) for the bias.
-float ShadowCalculation(vec4 fragPosLS, sampler2D shadowMap, vec3 N)
-{
-    vec3 projCoords = fragPosLS.xyz / fragPosLS.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if (projCoords.z > 1.0)
-    return 1.0;
-
-    float currentDepth = projCoords.z;
-    float bias = max(biasMultiplier * (1.0 - dot(normalize(N), normalize(-directionalLights[0].direction))),
-                     biasMultiplier);
-
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 0.0 : 1.0;
-        }
-    }
-    shadow /= 9.0;
-    return shadow;
-}
-
 // ----- PBR Helper Functions -----
-
 // Use roughness directly (clamped to a minimum) so that specular grows when smooth.
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -178,21 +138,9 @@ void main()
         }
     }
 
-    // --- Cascaded Shadow Mapping ---
-    float viewDepth = length(fragPos - viewPos);
-    int cascadeIndex = NUM_CASCADES - 1;
-    for (int i = 0; i < NUM_CASCADES; i++) {
-        if (viewDepth < cascadeSplits[i]) {
-            cascadeIndex = i;
-            break;
-        }
-    }
-    vec4 fragPosLS_current = lightSpaceMatrices[cascadeIndex] * vec4(fragPos, 1.0);
-    float shadow = ShadowCalculation(fragPosLS_current, shadowMaps[cascadeIndex], N);
-
     // --- Ambient Lighting ---
-    vec3 ambient = GetSkyboxAmbient(N);
-    vec3 color = (ambient * albedo * ao) + (Lo * shadow);
+    vec3 ambient = vec3(1 * strengthMultiplier);
+    vec3 color = (ambient * albedo * ao) + Lo;
     color = pow(color, vec3(1.0 / 2.2));
 
     outColor = vec4(color, 1.0);

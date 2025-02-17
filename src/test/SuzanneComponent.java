@@ -11,29 +11,33 @@ public class SuzanneComponent extends Component
     @Override
     public void update()
     {
+        float moveSpeed = (float) (10f * Time.deltaTime);
+        float sunSpeed = (float) (0.01f * Time.deltaTime);
+        float rotationSpeed = (float) (0.5f * Time.deltaTime);
+        
         // Rotate the object
         if(gameObject.getName().equals("Sun"))
         {
-            //gameObject.transform.rotation.x += 1f * Time.deltaTime;
+            //gameObject.transform.rotation.x += sunSpeed;
         }
         else if (gameObject.getName().equals("box"))
         {
-            gameObject.transform.rotation.y += Time.deltaTime;
+            gameObject.transform.rotation.y += rotationSpeed;
+            gameObject.children.getFirst().transform.rotation.x += rotationSpeed * 5;
         }
         
         else if (gameObject.getName().equals("Suzanne2"))
         {
-            gameObject.transform.rotation.x += Time.deltaTime;
         }
         
         // Handle movement
         if(Input.getKey("left"))
         {
-            transform.move(transform.left, 0.2f);
+            transform.move(transform.left, moveSpeed);
         }
         if(Input.getKey("right"))
         {
-            transform.move(transform.right, 0.2f);
+            transform.move(transform.right, moveSpeed);
         }
     }
 }

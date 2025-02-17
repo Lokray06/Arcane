@@ -81,7 +81,6 @@ public class Main
         suzanne2.addComponent(MeshRenderer.class);
         suzanne2.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne2.getComponent(MeshRenderer.class).material = greenMaterial;
-        suzanne2.addComponent(SuzanneComponent.class);
         suzanne2.addChild(sphere2);
         box.addChild(suzanne2);
 
