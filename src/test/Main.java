@@ -22,9 +22,9 @@ public class Main
         Texture metalAO = new Texture(FileUtils.load("1AO.png"));
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
-        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
-        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
+        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
         Skybox skybox = new Skybox(skyboxTexture);
         
         Material redMaterial = new Material(red, 0, 1);
