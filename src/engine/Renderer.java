@@ -248,6 +248,7 @@ public class Renderer {
             int cubeMap = pointLightShadowCube.getOrDefault(pLight, 0);
             GL13.glActiveTexture(GL13.GL_TEXTURE0 + pointShadowTexUnitStart + i);
             GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
+            // Set the uniform for this shadow map to the corresponding unit.
             shaderProgram.setUniform("pointShadowMaps[" + i + "]", pointShadowTexUnitStart + i);
             // Pass the far plane used in the point shadow pass:
             shaderProgram.setUniform("pointShadowFarPlanes[" + i + "]", 100.0f);

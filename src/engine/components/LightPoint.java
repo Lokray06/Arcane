@@ -12,9 +12,9 @@ import org.joml.Vector3f;
  */
 public class LightPoint extends Component {
     /** The color of the point light. */
-    public Vector3f color = new Vector3f(0, 0, 255);
+    public Vector3f color = new Vector3f(255, 255, 255);
     /** The base intensity of the point light. */
-    public float strength = 50.0f;
+    public float strength = 5;
     
     // Attenuation factors:
     /** Constant attenuation factor. */
