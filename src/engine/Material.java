@@ -12,10 +12,10 @@ public class Material {
     public float normalMapStrength = 1; // Scalar multiplier for the normal map strength
     
     public Texture metallicMap; // Metallic texture (Where is and where isn't metallic)
-    public float metallic = 1; // Scalar multiplier for the metallic map strength
+    public float metallic; // Scalar multiplier for the metallic map strength
     
     public Texture roughnessMap; // Roughness texture (Where is and where isn't shiny)
-    public float roughness = 0; // Scalar multiplier fot the roughness texture
+    public float roughness; // Scalar multiplier fot the roughness texture
     
     public Texture aoMap; // AO texture
     
@@ -25,7 +25,9 @@ public class Material {
             new Texture(Type.NORMAL),
             new Texture(Type.METALLIC),
             new Texture(Type.ROUGHNESS),
-            new Texture(Type.AO)
+            new Texture(Type.AO),
+            0,
+            1
     );
     
     public Material() {
@@ -37,27 +39,37 @@ public class Material {
     }
     
     public Material(Texture albedoMap) {
-        this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap);
+        this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
+    }
+    public Material(Texture albedoMap, float metallic, float roughness) {
+        this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, metallic, roughness);
     }
     
     public Material(Texture albedoMap, Texture normalMap) {
-        this(albedoMap, normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap);
+        this(albedoMap, normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
     }
     
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap) {
-        this(albedoMap, normalMap, metallicMap, empty.roughnessMap, empty.aoMap);
+        this(albedoMap, normalMap, metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
     }
     
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap) {
-        this(albedoMap, normalMap, metallicMap, roughnessMap, empty.aoMap);
+        this(albedoMap, normalMap, metallicMap, roughnessMap, empty.aoMap, 0, 1);
     }
     
-    public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap) {
+    public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap)
+    {
+        this(albedoMap, normalMap, metallicMap, roughnessMap, aoMap, 0, 1);
+    }
+    
+    public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap, float metallic, float roughness) {
         this.albedoMap = albedoMap;
         this.normalMap = normalMap;
         this.metallicMap = metallicMap;
         this.roughnessMap = roughnessMap;
         this.aoMap = aoMap;
+        this.metallic = metallic;
+        this.roughness = roughness;
     }
     
     @Override
