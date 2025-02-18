@@ -1,4 +1,4 @@
-#version 330 core
+#version 460 core
 // Inputs from the vertex shader.
 in vec3 fragPos;
 in vec2 fragTexCoord;
@@ -63,7 +63,7 @@ uniform samplerCube pointShadowMaps[MAX_POINT_LIGHTS];
 uniform float pointShadowFarPlanes[MAX_POINT_LIGHTS];
 
 const float PI = 3.14159265359;
-uniform float uLightStrength = 0.01;
+uniform float uLightStrength = 1;
 
 // ----- Directional Shadow Calculation -----
 float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)

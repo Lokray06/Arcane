@@ -93,28 +93,32 @@ public class Engine {
         if (!glfwInit()) {
             throw new IllegalStateException("Unable to initialize GLFW");
         }
-        
+
         // Configure GLFW window hints.
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Window will stay hidden until shown.
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);  // Allow window to be resized.
-        
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Force core profile
+
+
         // Create the GLFW window.
         window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Arcane Engine", NULL, NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
-        
+
         // Center the window on the primary monitor.
         GLFWVidMode vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         glfwSetWindowPos(window, (vidMode.width() - WINDOW_WIDTH) / 2, (vidMode.height() - WINDOW_HEIGHT) / 2);
-        
+
         // Set the current context to the created window.
         glfwMakeContextCurrent(window);
-        
+
         // Disable v-sync (swap interval 0).
         glfwSwapInterval(0);
-        
+
         // Make the window visible.
         glfwShowWindow(window);
     }
