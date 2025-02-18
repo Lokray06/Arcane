@@ -16,6 +16,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL43.*;
+
 public class Renderer {
     // Main shader program used for scene rendering.
     private static ShaderProgram shaderProgram;
@@ -52,44 +57,43 @@ public class Renderer {
      * the shadow map framebuffer and texture.
      */
     public static void init() {
-        // --- Load Main Shader ---
-        String vertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl"));
-        String fragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("fragment.glsl"));
-        shaderProgram = new ShaderProgram(vertexSource, fragmentSource);
+        enableOpenGLDebugging();
         
-        // --- Load Skybox Shader ---
-        String skyboxVertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxVertex.glsl"));
-        String skyboxFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxFragment.glsl"));
-        skyboxShader = new ShaderProgram(skyboxVertexSource, skyboxFragmentSource);
+        shaderProgram = new ShaderProgram(
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl")),
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("fragment.glsl"))
+        );
         
-        // --- Load Directional Light Depth Shader (for shadow mapping) ---
-        String depthVertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl"));
-        String depthFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl"));
-        depthShader = new ShaderProgram(depthVertexSource, depthFragmentSource);
+        skyboxShader = new ShaderProgram(
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxVertex.glsl")),
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxFragment.glsl"))
+        );
         
-        // --- Load Point Light Depth Shader (vertex, geometry & fragment) ---
-        String pointDepthVertexSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthVertex.glsl"));
-        String pointDepthGeometrySource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl"));
-        String pointDepthFragmentSource = FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl"));
-        pointDepthShader = new ShaderProgram(pointDepthVertexSource, pointDepthGeometrySource, pointDepthFragmentSource);
+        depthShader = new ShaderProgram(
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl")),
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl"))
+        );
         
-        // --- Create Directional Shadow Map FBO and Texture ---
+        pointDepthShader = new ShaderProgram(
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthVertex.glsl")),
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl")),
+                FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl"))
+        );
+        
         shadowMapFBO = GL30.glGenFramebuffers();
         shadowMap = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_DEPTH_COMPONENT,
-                          baseShadowMapWidth, baseShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (java.nio.ByteBuffer) null);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-        // Set texture wrapping to clamp to border and set border color to white.
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
+        GL11.glTexImage2D(GL_TEXTURE_2D, 0, GL11.GL_DEPTH_COMPONENT,
+                          baseShadowMapWidth, baseShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (ByteBuffer) null);
+        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
+        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
         FloatBuffer borderColor = BufferUtils.createFloatBuffer(4).put(new float[]{1f, 1f, 1f, 1f});
         borderColor.flip();
-        GL11.glTexParameterfv(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
-        // Attach texture as the framebuffer's depth buffer.
+        GL11.glTexParameterfv(GL_TEXTURE_2D, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
-        GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, shadowMap, 0);
+        GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
         GL11.glDrawBuffer(GL11.GL_NONE);
         GL11.glReadBuffer(GL11.GL_NONE);
         if (GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE) {
@@ -117,8 +121,10 @@ public class Renderer {
             Vector3f lightDir = new Vector3f(mainDirectionalLight.gameObject.transform.front()).negate();
             Vector3f sceneCenter = new Vector3f(0, 0, 0); // Could be computed from scene bounds.
             Vector3f lightPos = new Vector3f(sceneCenter).sub(new Vector3f(lightDir).mul(30f));
-            Matrix4f lightView = new Matrix4f().lookAt(lightPos, sceneCenter, new Vector3f(0, 1, 0));
-            Matrix4f lightProjection = new Matrix4f().ortho(-20, 20, -20, 20, 1, 100);
+            // Directional light (left-handed)
+            Matrix4f lightView = new Matrix4f().lookAtLH(lightPos, sceneCenter, new Vector3f(0, 1, 0));
+            Matrix4f lightProjection = new Matrix4f().orthoLH(-20, 20, -20, 20, 1, 100);
+            
             lightProjection.mul(lightView, lightSpaceMatrix);
             
             // Render shadow map from directional light's view.
@@ -147,7 +153,7 @@ public class Renderer {
             if (!pointLightShadowFBO.containsKey(pointLight)) {
                 int fbo = GL30.glGenFramebuffers();
                 int cubeMap = GL11.glGenTextures();
-                GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
+                glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
                 for (int i = 0; i < 6; i++) {
                     GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL11.GL_DEPTH_COMPONENT,
                                       pointShadowMapWidth, pointShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (ByteBuffer) null);
@@ -171,17 +177,29 @@ public class Renderer {
             int fbo = pointLightShadowFBO.get(pointLight);
             int cubeMap = pointLightShadowCube.get(pointLight);
             Vector3f lightPos = new Vector3f(pointLight.gameObject.transform.globalPosition);
+            System.out.println("Light Position: " + lightPos);
             float farPlane = 100.0f; // You might let each point light specify its own far plane.
             
-            // Create the 6 view-projection matrices for the cubemap faces.
-            Matrix4f shadowProj = new Matrix4f().perspective((float) Math.toRadians(90.0f), 1.0f, 1.0f, farPlane);
+            // Example (Java): Build the six view–projection matrices using left-handed lookAtLH.
+            Matrix4f shadowProj = new Matrix4f().perspective((float)Math.toRadians(90.0f), 1.0f, 1.0f, farPlane);
             Matrix4f[] shadowTransforms = new Matrix4f[6];
-            shadowTransforms[0] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(1, 0, 0), new Vector3f(0, -1, 0));
-            shadowTransforms[1] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(-1, 0, 0), new Vector3f(0, -1, 0));
-            shadowTransforms[2] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 1, 0), new Vector3f(0, 0, 1));
-            shadowTransforms[3] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, -1, 0), new Vector3f(0, 0, -1));
-            shadowTransforms[4] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 0, 1), new Vector3f(0, -1, 0));
-            shadowTransforms[5] = new Matrix4f().set(shadowProj).lookAt(lightPos, new Vector3f(lightPos).add(0, 0, -1), new Vector3f(0, -1, 0));
+            
+            shadowTransforms[0] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add( 1,  0,  0), new Vector3f(0,  1,  0)); // +X
+            shadowTransforms[1] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add(-1,  0,  0), new Vector3f(0,  1,  0)); // -X
+            shadowTransforms[2] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add( 0,  1,  0), new Vector3f(0,  0,  1)); // +Y
+            shadowTransforms[3] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add( 0, -1,  0), new Vector3f(0,  0, -1)); // -Y
+            shadowTransforms[4] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add( 0,  0,  1), new Vector3f(0,  1,  0)); // +Z
+            shadowTransforms[5] = new Matrix4f().set(shadowProj)
+                    .lookAtLH(lightPos, new Vector3f(lightPos).add( 0,  0, -1), new Vector3f(0,  1,  0)); // -Z
+            
+            
+            
+            
             
             // Render the scene to this point light's shadow cube map.
             GL11.glViewport(0, 0, pointShadowMapWidth, pointShadowMapHeight);
@@ -210,8 +228,7 @@ public class Renderer {
         }
         shaderProgram.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
         if (hasDirectionalLight) {
-            GL13.glActiveTexture(GL13.GL_TEXTURE6);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, shadowMap);
+            bindTexture(6, GL_TEXTURE_2D, shadowMap, "Directional Shadow Map");
             shaderProgram.setUniform("shadowMap", 6);
         }
         
@@ -246,10 +263,9 @@ public class Renderer {
         for (int i = 0; i < pointLights.size() && i < maxLights; i++) {
             LightPoint pLight = pointLights.get(i);
             int cubeMap = pointLightShadowCube.getOrDefault(pLight, 0);
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + pointShadowTexUnitStart + i);
-            GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
-            // Set the uniform for this shadow map to the corresponding unit.
-            shaderProgram.setUniform("pointShadowMaps[" + i + "]", pointShadowTexUnitStart + i);
+            int unit = pointShadowTexUnitStart + i;
+            bindTexture(unit, GL_TEXTURE_CUBE_MAP, cubeMap, "Point Light Shadow Cube Map for Light " + i);
+            shaderProgram.setUniform("pointShadowMaps[" + i + "]", unit);
             // Pass the far plane used in the point shadow pass:
             shaderProgram.setUniform("pointShadowFarPlanes[" + i + "]", 100.0f);
         }
@@ -260,7 +276,7 @@ public class Renderer {
             skybox = skyboxGO.getComponent(Skybox.class);
         }
         if (skybox != null && skybox.getCubeMap() != null) {
-            skybox.getCubeMap().bind(GL13.GL_TEXTURE5);
+            bindTexture(5, GL_TEXTURE_CUBE_MAP, skybox.getCubeMap().getID(), "Skybox Cube Map");
             shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
             shaderProgram.setUniform("skyboxAmbient.strength", 1);
         } else {
@@ -306,24 +322,19 @@ public class Renderer {
             Material material = meshRenderer.material;
             
             // Bind material textures.
-            GL13.glActiveTexture(GL13.GL_TEXTURE0);
-            material.albedoMap.bind(0);
+            bindTexture(0, GL_TEXTURE_2D, material.albedoMap.getID(), "Albedo Map");
             shaderProgram.setUniform("uAlbedo", 0);
             
-            GL13.glActiveTexture(GL13.GL_TEXTURE1);
-            material.normalMap.bind(1);
+            bindTexture(1, GL_TEXTURE_2D, material.normalMap.getID(), "Normal Map");
             shaderProgram.setUniform("uNormal", 1);
             
-            GL13.glActiveTexture(GL13.GL_TEXTURE2);
-            material.metallicMap.bind(2);
+            bindTexture(2, GL_TEXTURE_2D, material.metallicMap.getID(), "Metallic Map");
             shaderProgram.setUniform("uMetallic", 2);
             
-            GL13.glActiveTexture(GL13.GL_TEXTURE3);
-            material.roughnessMap.bind(3);
+            bindTexture(3, GL_TEXTURE_2D, material.roughnessMap.getID(), "Roughness Map");
             shaderProgram.setUniform("uRoughness", 3);
             
-            GL13.glActiveTexture(GL13.GL_TEXTURE4);
-            material.aoMap.bind(4);
+            bindTexture(4, GL_TEXTURE_2D, material.aoMap.getID(), "AO Map");
             shaderProgram.setUniform("uAO", 4);
             
             shaderProgram.setUniform("uNormalMapStrength", material.normalMapStrength);
@@ -332,7 +343,7 @@ public class Renderer {
             shaderProgram.setUniform("uRoughnessScalar", material.roughness);
             
             meshRenderer.mesh.render();
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+            bindTexture(0, GL_TEXTURE_2D, 0, "Unbind Texture");
         }
         for (GameObject child : gameObject.children) {
             renderRecursive(child);
@@ -393,5 +404,25 @@ public class Renderer {
         shaderProgram.cleanup();
         depthShader.cleanup();
         pointDepthShader.cleanup();
+    }
+    
+    public static void debugTextureBinding(String type, int textureID) {
+        System.out.println("[DEBUG] Binding Texture: Type = " + type + ", ID = " + textureID);
+    }
+    
+    private static void enableOpenGLDebugging() {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
+            String msg = GLDebugMessageCallback.getMessage(length, message);
+            System.err.println("[OpenGL Debug] " + msg);
+        }, 0);
+        System.out.println("[INFO] OpenGL debugging enabled.");
+    }
+    
+    public static void bindTexture(int textureUnit, int textureType, int textureID, String textureName) {
+        glActiveTexture(GL_TEXTURE0 + textureUnit);
+        glBindTexture(textureType, textureID);
+        //System.out.println("[DEBUG] Bound " + textureName + " (ID: " + textureID + ") to Texture Unit " + textureUnit);
     }
 }

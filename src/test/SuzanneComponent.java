@@ -13,7 +13,26 @@ public class SuzanneComponent extends Component
     {
         float moveSpeed = (float) (10f * Time.deltaTime);
         float sunSpeed = (float) (0.01f * Time.deltaTime);
-        float rotationSpeed = (float) (0.5f * Time.deltaTime);
+        float hInput = 0;
+        float rotationSpeed = (float) (0.2f * Time.deltaTime);
+        
+        // Handle movement
+        if(Input.getKey("left"))
+        {
+            transform.move(transform.left, moveSpeed);
+            hInput = -1;
+        }
+        if(Input.getKey("right"))
+        {
+            transform.move(transform.right, moveSpeed);
+            hInput = 1;
+        }
+        else
+        {
+            hInput = 0;
+        }
+        
+        rotationSpeed *= 0;
         
         // Rotate the object
         if(gameObject.getName().equals("Sun"))
@@ -23,21 +42,7 @@ public class SuzanneComponent extends Component
         else if (gameObject.getName().equals("box"))
         {
             gameObject.transform.rotation.y += rotationSpeed;
-            gameObject.children.getFirst().transform.rotation.x += rotationSpeed * 5;
-        }
-        
-        else if (gameObject.getName().equals("Suzanne2"))
-        {
-        }
-        
-        // Handle movement
-        if(Input.getKey("left"))
-        {
-            transform.move(transform.left, moveSpeed);
-        }
-        if(Input.getKey("right"))
-        {
-            transform.move(transform.right, moveSpeed);
+            gameObject.children.getFirst().transform.rotation.x += rotationSpeed;
         }
     }
 }

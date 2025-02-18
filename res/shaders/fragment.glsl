@@ -63,7 +63,7 @@ uniform samplerCube pointShadowMaps[MAX_POINT_LIGHTS];
 uniform float pointShadowFarPlanes[MAX_POINT_LIGHTS];
 
 const float PI = 3.14159265359;
-uniform float uLightStrength = 1;
+uniform float uLightStrength = 0.01f;
 
 // ----- Directional Shadow Calculation -----
 float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
@@ -90,7 +90,7 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 }
 
 // ----- Point Light Shadow Calculation -----
-// A 20-sample PCF using a precomputed array of offset directions.
+// A 20-sample PCF using a precomputed array of normalized offset directions.
 float calculatePointShadow(int index, vec3 fragPos)
 {
     vec3 lightToFrag = fragPos - pointLights[index].position;
@@ -99,23 +99,36 @@ float calculatePointShadow(int index, vec3 fragPos)
     int samples = 20;
     float shadow = 0.0;
     float diskRadius = (1.0 + (currentDepth / pointShadowFarPlanes[index])) / 25.0;
+
+    // Pre-normalized offset directions.
     vec3 sampleOffsetDirections[20] = vec3[](
-    vec3( 1.0,  1.0,  1.0), vec3( 1.0, -1.0,  1.0),
-    vec3(-1.0, -1.0,  1.0), vec3(-1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0, -1.0), vec3( 1.0, -1.0, -1.0),
-    vec3(-1.0, -1.0, -1.0), vec3(-1.0,  1.0, -1.0),
-    vec3( 1.0,  0.0,  0.0), vec3(-1.0,  0.0,  0.0),
-    vec3( 0.0,  1.0,  0.0), vec3( 0.0, -1.0,  0.0),
-    vec3( 0.0,  0.0,  1.0), vec3( 0.0,  0.0, -1.0),
-    vec3( 1.0,  1.0,  0.0), vec3( 1.0, -1.0,  0.0),
-    vec3(-1.0, -1.0,  0.0), vec3(-1.0,  1.0,  0.0),
-    vec3( 1.0,  0.0,  1.0), vec3(-1.0,  0.0,  1.0)
+    normalize(vec3( 1.0,  1.0,  1.0)),
+    normalize(vec3( 1.0, -1.0,  1.0)),
+    normalize(vec3(-1.0, -1.0,  1.0)),
+    normalize(vec3(-1.0,  1.0,  1.0)),
+    normalize(vec3( 1.0,  1.0, -1.0)),
+    normalize(vec3( 1.0, -1.0, -1.0)),
+    normalize(vec3(-1.0, -1.0, -1.0)),
+    normalize(vec3(-1.0,  1.0, -1.0)),
+    normalize(vec3( 1.0,  0.0,  0.0)),
+    normalize(vec3(-1.0,  0.0,  0.0)),
+    normalize(vec3( 0.0,  1.0,  0.0)),
+    normalize(vec3( 0.0, -1.0,  0.0)),
+    normalize(vec3( 0.0,  0.0,  1.0)),
+    normalize(vec3( 0.0,  0.0, -1.0)),
+    normalize(vec3( 1.0,  1.0,  0.0)),
+    normalize(vec3( 1.0, -1.0,  0.0)),
+    normalize(vec3(-1.0, -1.0,  0.0)),
+    normalize(vec3(-1.0,  1.0,  0.0)),
+    normalize(vec3( 1.0,  0.0,  1.0)),
+    normalize(vec3(-1.0,  0.0,  1.0))
     );
 
     for (int i = 0; i < samples; ++i)
     {
-        vec3 samplePos = lightToFrag + sampleOffsetDirections[i] * diskRadius;
-        float closestDepth = texture(pointShadowMaps[index], samplePos).r;
+        // Combine the direction from the light with the offset and re-normalize.
+        vec3 sampleDir = normalize(lightToFrag + sampleOffsetDirections[i] * diskRadius);
+        float closestDepth = texture(pointShadowMaps[index], sampleDir).r;
         closestDepth *= pointShadowFarPlanes[index]; // Remap to [0, farPlane]
         if (currentDepth - bias > closestDepth)
         shadow += 1.0;
@@ -150,7 +163,6 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
 
 void main()
 {
@@ -231,6 +243,8 @@ void main()
     }
 
     // --- Ambient Lighting ---
+    // (Note: skyboxAmbient is declared but not used here; if you intended to sample it for ambient,
+    //  you may need to add that calculation.)
     vec3 ambient = vec3(0);
     vec3 color = ambient * albedo * ao + Lo;
     color = pow(color, vec3(1.0 / 2.2));

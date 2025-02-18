@@ -22,8 +22,8 @@ public class Main
         Texture metalAO = new Texture(FileUtils.load("1AO.png"));
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
-        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
-        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
+        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
         Skybox skybox = new Skybox(skyboxTexture);
         
@@ -62,12 +62,12 @@ public class Main
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
         sphere.getComponent(MeshRenderer.class).material = metal;
         
-        GameObject sphere3 = new GameObject("Sphere2", new Transform(new Vector3f(-10, 0, -4), new Vector3f(1f)));
+        GameObject sphere3 = new GameObject("Sphere3", new Transform(new Vector3f(-10, 0, -4), new Vector3f(1f)));
         sphere3.addComponent(MeshRenderer.class);
         sphere3.getComponent(MeshRenderer.class).mesh = sphereMesh;
         sphere3.getComponent(MeshRenderer.class).material = redMaterial;
         
-        GameObject sphere2 = new GameObject("littleSphere", new Transform(new Vector3f(0, 0, 5)));
+        GameObject sphere2 = new GameObject("sphere2(light)", new Transform(new Vector3f(0, 2, 0), new Vector3f(0.0f)));
         sphere2.addComponent(MeshRenderer.class);
         sphere2.getComponent(MeshRenderer.class).mesh = sphereMesh;
         sphere2.getComponent(MeshRenderer.class).material = Material.empty;
@@ -82,7 +82,6 @@ public class Main
         suzanne2.addComponent(MeshRenderer.class);
         suzanne2.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne2.getComponent(MeshRenderer.class).material = greenMaterial;
-        suzanne2.addChild(sphere2);
         sphere2.addComponent(LightPoint.class);
         box.addChild(suzanne2);
 
@@ -98,6 +97,7 @@ public class Main
         camera.addComponent(cameraComponent);
         camera.addComponent(CameraController.class);
         camera.getComponent(Camera.class).isActive = true;
+        camera.addChild(sphere2);
         
         GameObject sun = new GameObject("Sun");
         sun.transform.rotation.x = 90;
