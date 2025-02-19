@@ -22,7 +22,7 @@ public class Skybox extends Component {
     /** The cubemap texture used for the skybox. */
     private CubeMapTexture cubeMap;
     /** The ambient color applied to the skybox lighting. */
-    private Vector3f ambientColor;
+    private Vector3f ambientColor = new Vector3f(1);
     
     /**
      * Constructs a Skybox component with the specified cubemap texture.

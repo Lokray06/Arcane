@@ -28,38 +28,38 @@ public class Renderer {
     private static final String MODEL_UNIFORM = "model";
     private static final String VIEW_UNIFORM = "view";
     private static final String PROJECTION_UNIFORM = "projection";
-    
+
     private static ShaderProgram skyboxShader;
-    
+
     // Cascaded shadow parameters for directional light.
     public static int cascadeCount = 4;
     public static int baseShadowMapWidth = 2048;
     public static int baseShadowMapHeight = 2048;
-    
+
     // --- Shadow Map Variables for directional light ---
     private static int shadowMapFBO;
     private static int shadowMap;
     private static ShaderProgram depthShader;
-    
+
     // --- New: Shader program for point light shadow mapping ---
     private static ShaderProgram pointDepthShader;
     // Resolution for point light shadow maps:
     private static final int pointShadowMapWidth = 1024;
     private static final int pointShadowMapHeight = 1024;
-    
+
     // These maps keep track of (point light → its shadow framebuffer and cube map)
     private static final Map<LightPoint, Integer> pointLightShadowFBO = new HashMap<>();
     private static final Map<LightPoint, Integer> pointLightShadowCube = new HashMap<>();
-    
+
     private static Skybox skybox;
-    
+
     /**
      * Initializes the renderer by loading shader programs and setting up
      * the shadow map framebuffer and texture.
      */
     public static void init() {
         enableOpenGLDebugging();
-        
+
         shaderProgram = new ShaderProgram(
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("fragment.glsl"))
@@ -74,42 +74,43 @@ public class Renderer {
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl"))
         );
-        
+
         pointDepthShader = new ShaderProgram(
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthVertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl"))
         );
 
-        String[] shaders = new String[8];
-        for(int i = 0; i < 8; i++)
-        {
+        // (Unused shader array removed for clarity)
 
-        }
-        System.out.println();
-        
+        // --- Setup Directional Shadow Map FBO and Texture ---
         shadowMapFBO = GL30.glGenFramebuffers();
-        shadowMap = GL11.glGenTextures();
+        shadowMap = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, shadowMap);
-        GL11.glTexImage2D(GL_TEXTURE_2D, 0, GL11.GL_DEPTH_COMPONENT,
-                          baseShadowMapWidth, baseShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (ByteBuffer) null);
-        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
-        GL11.glTexParameteri(GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
+        // Use explicit 32-bit depth format for Intel GPUs
+        glTexImage2D(GL_TEXTURE_2D, 0, GL30.GL_DEPTH_COMPONENT24,
+                baseShadowMapWidth, baseShadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (ByteBuffer) null);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         FloatBuffer borderColor = BufferUtils.createFloatBuffer(4).put(new float[]{1f, 1f, 1f, 1f});
         borderColor.flip();
-        GL11.glTexParameterfv(GL_TEXTURE_2D, GL11.GL_TEXTURE_BORDER_COLOR, borderColor);
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
-        GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
-        GL11.glDrawBuffer(GL11.GL_NONE);
-        GL11.glReadBuffer(GL11.GL_NONE);
-        if (GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE) {
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        // Set texture compare mode for proper hardware shadow lookup
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             System.err.println("Directional shadow map framebuffer not complete!");
         }
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    
+
     /**
      * Renders the active scene from the perspective of the active camera.
      */
@@ -119,11 +120,11 @@ public class Renderer {
             System.err.println("No active camera to render");
             return;
         }
-        
+
         LightDirectional mainDirectionalLight = getMainDirectionalLight(activeScene);
         boolean hasDirectionalLight = (mainDirectionalLight != null);
         Matrix4f lightSpaceMatrix = new Matrix4f();
-        
+
         // -------- 1. Directional Light Shadow Map Pass --------
         if (hasDirectionalLight) {
             Vector3f lightDir = new Vector3f(mainDirectionalLight.gameObject.transform.front()).negate();
@@ -132,22 +133,22 @@ public class Renderer {
             // Directional light (left-handed)
             Matrix4f lightView = new Matrix4f().lookAtLH(lightPos, sceneCenter, new Vector3f(0, 1, 0));
             Matrix4f lightProjection = new Matrix4f().orthoLH(-20, 20, -20, 20, 1, 100);
-            
+
             lightProjection.mul(lightView, lightSpaceMatrix);
-            
+
             // Render shadow map from directional light's view.
-            GL11.glViewport(0, 0, baseShadowMapWidth, baseShadowMapHeight);
-            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, shadowMapFBO);
-            GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+            glViewport(0, 0, baseShadowMapWidth, baseShadowMapHeight);
+            glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
             depthShader.use();
             depthShader.setUniformMat4("lightSpaceMatrix", lightSpaceMatrix);
             renderSceneForShadows(activeScene, depthShader);
-            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         } else {
             System.err.println("No directional light available for shadows. Rendering without directional shadows.");
             lightSpaceMatrix.identity();
         }
-        
+
         // -------- 2. Point Light Shadow Map Pass --------
         // Collect point lights from the scene.
         List<LightPoint> pointLights = new ArrayList<>();
@@ -160,38 +161,42 @@ public class Renderer {
             // If this light does not yet have a shadow map allocated, create one:
             if (!pointLightShadowFBO.containsKey(pointLight)) {
                 int fbo = GL30.glGenFramebuffers();
-                int cubeMap = GL11.glGenTextures();
-                glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, cubeMap);
+                int cubeMap = glGenTextures();
+                glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
                 for (int i = 0; i < 6; i++) {
-                    GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL11.GL_DEPTH_COMPONENT,
-                                      pointShadowMapWidth, pointShadowMapHeight, 0, GL11.GL_DEPTH_COMPONENT, GL11.GL_FLOAT, (ByteBuffer) null);
+                    // Use explicit 32-bit depth format for Intel GPUs here too.
+                    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL30.GL_DEPTH_COMPONENT32F,
+                            pointShadowMapWidth, pointShadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (ByteBuffer) null);
                 }
-                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_EDGE);
-                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_EDGE);
-                GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL13.GL_CLAMP_TO_EDGE);
-                GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo);
-                GL33.glFramebufferTexture(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, cubeMap, 0);
-                GL11.glDrawBuffer(GL11.GL_NONE);
-                GL11.glReadBuffer(GL11.GL_NONE);
-                if (GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) != GL30.GL_FRAMEBUFFER_COMPLETE) {
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+                // For cube maps we do not use hardware depth comparison
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+                GL33.glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubeMap, 0);
+                glDrawBuffer(GL_NONE);
+                glReadBuffer(GL_NONE);
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
                     System.err.println("Point light shadow framebuffer not complete!");
                 }
-                GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 pointLightShadowFBO.put(pointLight, fbo);
                 pointLightShadowCube.put(pointLight, cubeMap);
             }
             int fbo = pointLightShadowFBO.get(pointLight);
             int cubeMap = pointLightShadowCube.get(pointLight);
             Vector3f lightPos = new Vector3f(pointLight.gameObject.transform.globalPosition);
-            System.out.println("Light Position: " + lightPos);
+            // System.out.println("Light Position: " + lightPos); // Debug print (optional)
             float farPlane = 100.0f; // You might let each point light specify its own far plane.
-            
-            // Example (Java): Build the six view–projection matrices using left-handed lookAtLH.
+
+            // Build the six view–projection matrices using left-handed lookAtLH.
             Matrix4f shadowProj = new Matrix4f().perspective((float)Math.toRadians(90.0f), 1.0f, 1.0f, farPlane);
             Matrix4f[] shadowTransforms = new Matrix4f[6];
-            
+
             shadowTransforms[0] = new Matrix4f().set(shadowProj)
                     .lookAtLH(lightPos, new Vector3f(lightPos).add( 1,  0,  0), new Vector3f(0,  1,  0)); // +X
             shadowTransforms[1] = new Matrix4f().set(shadowProj)
@@ -204,15 +209,11 @@ public class Renderer {
                     .lookAtLH(lightPos, new Vector3f(lightPos).add( 0,  0,  1), new Vector3f(0,  1,  0)); // +Z
             shadowTransforms[5] = new Matrix4f().set(shadowProj)
                     .lookAtLH(lightPos, new Vector3f(lightPos).add( 0,  0, -1), new Vector3f(0,  1,  0)); // -Z
-            
-            
-            
-            
-            
+
             // Render the scene to this point light's shadow cube map.
-            GL11.glViewport(0, 0, pointShadowMapWidth, pointShadowMapHeight);
-            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo);
-            GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+            glViewport(0, 0, pointShadowMapWidth, pointShadowMapHeight);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            glClear(GL_DEPTH_BUFFER_BIT);
             pointDepthShader.use();
             // Set the 6 shadow matrices.
             for (int i = 0; i < 6; i++) {
@@ -221,13 +222,13 @@ public class Renderer {
             pointDepthShader.setUniform("lightPos", lightPos);
             pointDepthShader.setUniform("farPlane", farPlane);
             renderSceneForShadows(activeScene, pointDepthShader);
-            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
-        
+
         // -------- 3. Main Scene Pass --------
-        GL11.glViewport(0, 0, Engine.WINDOW_WIDTH, Engine.WINDOW_HEIGHT);
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-        
+        glViewport(0, 0, Engine.WINDOW_WIDTH, Engine.WINDOW_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         shaderProgram.use();
         try (MemoryStack stack = MemoryStack.stackPush()) {
             shaderProgram.setUniformMat4(PROJECTION_UNIFORM, getProjectionMatrix(mainCamera));
@@ -239,7 +240,7 @@ public class Renderer {
             bindTexture(6, GL_TEXTURE_2D, shadowMap, "Directional Shadow Map");
             shaderProgram.setUniform("shadowMap", 6);
         }
-        
+
         // Set directional lights.
         List<LightDirectional> directionalLights = new ArrayList<>();
         if (activeScene.rootGameObject != null) {
@@ -254,8 +255,8 @@ public class Renderer {
             shaderProgram.setUniform("directionalLights[" + i + "].color", light.color);
             shaderProgram.setUniform("directionalLights[" + i + "].strength", light.strength);
         }
-        
-        // Pass point light parameters (positions, colors, etc.).
+
+        // Pass point light parameters.
         shaderProgram.setUniform("numPointLights", pointLights.size());
         for (int i = 0; i < pointLights.size() && i < maxLights; i++) {
             LightPoint pLight = pointLights.get(i);
@@ -277,7 +278,7 @@ public class Renderer {
             // Pass the far plane used in the point shadow pass:
             shaderProgram.setUniform("pointShadowFarPlanes[" + i + "]", 100.0f);
         }
-        
+
         // Bind skybox if available.
         GameObject skyboxGO = GameObject.getGameObjectWithComponent(Skybox.class);
         if (skyboxGO != null) {
@@ -290,19 +291,19 @@ public class Renderer {
         } else {
             System.err.println("Couldn't load skybox");
         }
-        
+
         // Render all objects.
         if (activeScene.rootGameObject != null) {
             renderRecursive(activeScene.rootGameObject);
         }
     }
-    
+
     private static void renderSceneForShadows(Scene activeScene, ShaderProgram shader) {
         if (activeScene.rootGameObject != null) {
             renderForShadowsRecursive(activeScene.rootGameObject, shader);
         }
     }
-    
+
     private static void renderForShadowsRecursive(GameObject gameObject, ShaderProgram shader) {
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
         if (meshRenderer != null && meshRenderer.mesh != null) {
@@ -315,7 +316,7 @@ public class Renderer {
             renderForShadowsRecursive(child, shader);
         }
     }
-    
+
     private static void renderRecursive(GameObject gameObject) {
         Camera mainCamera = getActiveCamera(Engine.activeScene);
         MeshRenderer meshRenderer = gameObject.getComponent(MeshRenderer.class);
@@ -328,39 +329,37 @@ public class Renderer {
             Matrix4f modelMatrix = gameObject.transform.getModelMatrix();
             shaderProgram.setUniformMat4(MODEL_UNIFORM, modelMatrix);
             Material material = meshRenderer.material;
-            
+
             // Bind material textures.
             bindTexture(0, GL_TEXTURE_2D, material.albedoMap.getID(), "Albedo Map");
             shaderProgram.setUniform("uAlbedo", 0);
-            
+
             bindTexture(1, GL_TEXTURE_2D, material.normalMap.getID(), "Normal Map");
             shaderProgram.setUniform("uNormal", 1);
-            
+
             bindTexture(2, GL_TEXTURE_2D, material.metallicMap.getID(), "Metallic Map");
             shaderProgram.setUniform("uMetallic", 2);
-            
+
             bindTexture(3, GL_TEXTURE_2D, material.roughnessMap.getID(), "Roughness Map");
             shaderProgram.setUniform("uRoughness", 3);
-            
+
             bindTexture(4, GL_TEXTURE_2D, material.aoMap.getID(), "AO Map");
             shaderProgram.setUniform("uAO", 4);
-            
+
             shaderProgram.setUniform("uNormalMapStrength", material.normalMapStrength);
             shaderProgram.setUniform("uAlbedoColor", material.albedoColor);
             shaderProgram.setUniform("uMetallicScalar", material.metallic);
             shaderProgram.setUniform("uRoughnessScalar", material.roughness);
-            
+
             meshRenderer.mesh.render();
             bindTexture(0, GL_TEXTURE_2D, 0, "Unbind Texture");
         }
         for (GameObject child : gameObject.children) {
             renderRecursive(child);
         }
-        IntBuffer mapped = BufferUtils.createIntBuffer(1);
-        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_MAPPED, mapped);
-        System.out.println("Mapped: " + mapped.get(0));
+        // Removed extraneous debug call querying buffer mapping state.
     }
-    
+
     private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {
         LightDirectional light = gameObject.getComponent(LightDirectional.class);
         if (light != null) {
@@ -370,7 +369,7 @@ public class Renderer {
             collectDirectionalLights(child, lights);
         }
     }
-    
+
     private static void collectPointLights(GameObject gameObject, List<LightPoint> lights) {
         LightPoint light = gameObject.getComponent(LightPoint.class);
         if (light != null) {
@@ -380,7 +379,7 @@ public class Renderer {
             collectPointLights(child, lights);
         }
     }
-    
+
     private static Matrix4f getProjectionMatrix(Camera camera) {
         Matrix4f projectionMatrix = new Matrix4f();
         float aspectRatio = camera.aspectRatio;
@@ -392,7 +391,7 @@ public class Renderer {
         }
         return projectionMatrix;
     }
-    
+
     private static Camera getActiveCamera(Scene activeScene) {
         for (GameObject gameObject : activeScene.getGameObjects()) {
             Camera camera = gameObject.getComponent(Camera.class);
@@ -402,7 +401,7 @@ public class Renderer {
         }
         return null;
     }
-    
+
     private static LightDirectional getMainDirectionalLight(Scene activeScene) {
         List<LightDirectional> directionalLights = new ArrayList<>();
         if (activeScene.rootGameObject != null) {
@@ -410,30 +409,119 @@ public class Renderer {
         }
         return !directionalLights.isEmpty() ? directionalLights.get(0) : null;
     }
-    
+
     public static void cleanup() {
         shaderProgram.cleanup();
         depthShader.cleanup();
         pointDepthShader.cleanup();
     }
-    
+
     public static void debugTextureBinding(String type, int textureID) {
         System.out.println("[DEBUG] Binding Texture: Type = " + type + ", ID = " + textureID);
     }
-    
+
     private static void enableOpenGLDebugging() {
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
-            String msg = GLDebugMessageCallback.getMessage(length, message);
-            System.err.println("[OpenGL Debug] " + msg);
-        }, 0);
-        System.out.println("[INFO] OpenGL debugging enabled.");
+        if (GL.getCapabilities().GL_KHR_debug) {
+            System.out.println("OpenGL Debugging Enabled");
+
+            GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
+                String msg = GLDebugMessage(source, type, id, severity, length, message);
+                System.err.println(msg);
+
+                // Optional: Throw an exception on severe errors
+                if (severity == GL_DEBUG_SEVERITY_HIGH) {
+                    throw new RuntimeException("Critical OpenGL error: " + msg);
+                }
+            }, 0);
+
+            // Enable synchronous debugging so errors are caught immediately
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        } else {
+            System.out.println("OpenGL debugging not supported on this system.");
+        }
     }
-    
+
+    /**
+     * Formats OpenGL debug messages for better readability.
+     */
+    private static String GLDebugMessage(int source, int type, int id, int severity, int length, long message) {
+        String sourceStr = switch (source) {
+            case GL_DEBUG_SOURCE_API -> "API";
+            case GL_DEBUG_SOURCE_WINDOW_SYSTEM -> "Window System";
+            case GL_DEBUG_SOURCE_SHADER_COMPILER -> "Shader Compiler";
+            case GL_DEBUG_SOURCE_THIRD_PARTY -> "Third Party";
+            case GL_DEBUG_SOURCE_APPLICATION -> "Application";
+            case GL_DEBUG_SOURCE_OTHER -> "Other";
+            default -> "Unknown Source";
+        };
+
+        String typeStr = switch (type) {
+            case GL_DEBUG_TYPE_ERROR -> "Error";
+            case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR -> "Deprecated Behavior";
+            case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR -> "Undefined Behavior";
+            case GL_DEBUG_TYPE_PORTABILITY -> "Portability Issue";
+            case GL_DEBUG_TYPE_PERFORMANCE -> "Performance Issue";
+            case GL_DEBUG_TYPE_MARKER -> "Marker";
+            case GL_DEBUG_TYPE_PUSH_GROUP -> "Push Group";
+            case GL_DEBUG_TYPE_POP_GROUP -> "Pop Group";
+            case GL_DEBUG_TYPE_OTHER -> "Other";
+            default -> "Unknown Type";
+        };
+
+        String severityStr = switch (severity) {
+            case GL_DEBUG_SEVERITY_HIGH -> "High";
+            case GL_DEBUG_SEVERITY_MEDIUM -> "Medium";
+            case GL_DEBUG_SEVERITY_LOW -> "Low";
+            case GL_DEBUG_SEVERITY_NOTIFICATION -> "Notification";
+            default -> "Unknown Severity";
+        };
+
+        String messageStr = GLDebugMessageCallback.getMessage(length, message);
+
+        return String.format("[OpenGL Debug] ID: %d | Source: %s | Type: %s | Severity: %s | Message: %s",
+                id, sourceStr, typeStr, severityStr, messageStr);
+    }
+
+
     public static void bindTexture(int textureUnit, int textureType, int textureID, String textureName) {
         glActiveTexture(GL_TEXTURE0 + textureUnit);
         glBindTexture(textureType, textureID);
-        //System.out.println("[DEBUG] Bound " + textureName + " (ID: " + textureID + ") to Texture Unit " + textureUnit);
+        // Optionally enable debug logging here.
+    }
+
+    private void checkFramebufferStatus() {
+        int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        switch (status) {
+            case GL_FRAMEBUFFER_COMPLETE:
+                return; // No issues
+            case GL_FRAMEBUFFER_UNDEFINED:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_UNDEFINED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_UNSUPPORTED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+                System.err.println("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS");
+                break;
+            default:
+                System.err.println("Framebuffer error: Unknown error (status = " + status + ")");
+                break;
+        }
     }
 }

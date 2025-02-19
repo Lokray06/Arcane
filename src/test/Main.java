@@ -23,7 +23,8 @@ public class Main
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
-        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Parking-Garage-Müller-Roth-4K.hdr"));
+        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
         Skybox skybox = new Skybox(skyboxTexture);
         
@@ -83,6 +84,7 @@ public class Main
         suzanne2.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne2.getComponent(MeshRenderer.class).material = greenMaterial;
         sphere2.addComponent(LightPoint.class);
+        box.addChild(suzanne2);
         box.addChild(suzanne2);
 
         GameObject suzanne3 = new GameObject("Suzanne3", new Transform(new Vector3f(0, 0, -10), new Vector3f(2f)));

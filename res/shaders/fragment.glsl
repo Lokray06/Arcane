@@ -63,7 +63,7 @@ uniform samplerCube pointShadowMaps[MAX_POINT_LIGHTS];
 uniform float pointShadowFarPlanes[MAX_POINT_LIGHTS];
 
 const float PI = 3.14159265359;
-uniform float uLightStrength = 0.01f;
+uniform float uLightStrength = 0.01;
 
 // ----- Directional Shadow Calculation -----
 float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
@@ -128,6 +128,7 @@ float calculatePointShadow(int index, vec3 fragPos)
     {
         // Combine the direction from the light with the offset and re-normalize.
         vec3 sampleDir = normalize(lightToFrag + sampleOffsetDirections[i] * diskRadius);
+        //float closestDepth = 0.5;
         float closestDepth = texture(pointShadowMaps[index], sampleDir).r;
         closestDepth *= pointShadowFarPlanes[index]; // Remap to [0, farPlane]
         if (currentDepth - bias > closestDepth)
@@ -248,6 +249,7 @@ void main()
     vec3 ambient = vec3(0.3);
     vec3 color = ambient * albedo * ao + Lo;
     color = pow(color, vec3(1.0 / 2.2));
+
 
     outColor = vec4(color, 1.0);
     //outColor = vec4(vec3(1), 1.0);

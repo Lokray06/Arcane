@@ -12,7 +12,7 @@ import static org.lwjgl.opengl.GL32.*;
 
 public class ShaderProgram {
     /** The OpenGL program ID. */
-    private final int programId;
+    public final int programId;
 
     /**
      * Creates a new shader program from the provided vertex and fragment shader source code.

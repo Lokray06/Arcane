@@ -244,9 +244,14 @@ public class Mesh {
     public void render() {
         if (!initialized) initMesh();
         glBindVertexArray(vaoId);
+        // Rebind both the VBO and the EBO to ensure all needed state is present on Intel GPUs.
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
         glDrawElements(GL_TRIANGLES, indices.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+
+
 
     /**
      * Releases the OpenGL buffers associated with this mesh.
