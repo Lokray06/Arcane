@@ -2,8 +2,11 @@ package engine;
 
 import org.joml.Vector3f;
 import org.joml.Vector2f;
+import org.lwjgl.BufferUtils;
 
 import java.io.*;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.*;
 import java.util.regex.*;
 
@@ -35,16 +38,16 @@ public class Mesh {
     public int[][][] faces;
     /** Name of the mesh. */
     public String meshName;
-    
+
     // OpenGL handles.
     private int vaoId;
     private int vboId;
     private int eboId;
     private boolean initialized = false;
-    
+
     private float[] interleavedVertexData;
     private int[] indices;
-    
+
     /**
      * Constructs a Mesh by loading an OBJ file.
      *
@@ -55,19 +58,19 @@ public class Mesh {
         List<Vector3f> normalsList = new ArrayList<>();
         List<Vector2f> uvsList = new ArrayList<>();
         List<int[][]> facesList = new ArrayList<>();
-        
+
         try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
             Pattern pattern = Pattern.compile("^(o|v|vn|vt|f) (.+)$");
             String line;
-            
+
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty()) continue;
                 Matcher matcher = pattern.matcher(line);
-                
+
                 if (matcher.find()) {
                     String type = matcher.group(1);
                     String data = matcher.group(2);
-                    
+
                     switch (type) {
                         case "o":
                             this.meshName = data;
@@ -98,14 +101,14 @@ public class Mesh {
                         case "f":
                             String[] faceComponents = data.split("\\s+");
                             int[][] faceIndices = new int[faceComponents.length][3];
-                            
+
                             for (int i = 0; i < faceComponents.length; i++) {
                                 String[] indices = faceComponents[i].split("/");
                                 faceIndices[i][0] = Integer.parseInt(indices[0]) - 1;
                                 faceIndices[i][1] = (indices.length > 1 && !indices[1].isEmpty()) ? Integer.parseInt(indices[1]) - 1 : -1;
                                 faceIndices[i][2] = (indices.length > 2 && !indices[2].isEmpty()) ? Integer.parseInt(indices[2]) - 1 : -1;
                             }
-                            
+
                             // If the face has 4 vertices, split it into two triangles.
                             if (faceIndices.length == 4) {
                                 facesList.add(new int[][]{faceIndices[0], faceIndices[1], faceIndices[2]});
@@ -121,13 +124,13 @@ public class Mesh {
             System.err.println("Failed to load mesh: " + path);
             throw new RuntimeException(e);
         }
-        
+
         this.vertices = verticesList.toArray(new Vector3f[0]);
         this.normals = normalsList.toArray(new Vector3f[0]);
         this.uvs = uvsList.toArray(new Vector2f[0]);
         this.faces = facesList.toArray(new int[0][][]);
     }
-    
+
     /**
      * Constructs a Mesh from provided vertex positions and face indices.
      *
@@ -139,7 +142,7 @@ public class Mesh {
         this.faces = faces;
         this.meshName = "GeneratedMesh";
     }
-    
+
     /**
      * Initializes the mesh by creating and binding OpenGL buffers.
      * <p>
@@ -148,27 +151,27 @@ public class Mesh {
      */
     public void initMesh() {
         if (initialized) return;
-        
+
         List<Float> vertexDataList = new ArrayList<>();
         List<Integer> indicesList = new ArrayList<>();
         Map<String, Integer> uniqueVertexMap = new HashMap<>();
         int currentIndex = 0;
-        
+
         for (int[][] face : faces) {
             for (int[] vertexIndices : face) {
                 int vIndex = vertexIndices[0];
                 int uvIndex = vertexIndices.length > 1 ? vertexIndices[1] : -1;
                 int nIndex = vertexIndices.length > 2 ? vertexIndices[2] : -1;
-                
+
                 String key = vIndex + "/" + uvIndex + "/" + nIndex;
-                
+
                 if (!uniqueVertexMap.containsKey(key)) {
                     uniqueVertexMap.put(key, currentIndex);
                     Vector3f pos = vertices[vIndex];
                     vertexDataList.add(pos.x);
                     vertexDataList.add(pos.y);
                     vertexDataList.add(pos.z);
-                    
+
                     if (normals != null && nIndex >= 0 && nIndex < normals.length) {
                         Vector3f norm = normals[nIndex];
                         vertexDataList.add(norm.x);
@@ -179,7 +182,7 @@ public class Mesh {
                         vertexDataList.add(0.0f);
                         vertexDataList.add(0.0f);
                     }
-                    
+
                     if (uvs != null && uvIndex >= 0 && uvIndex < uvs.length) {
                         Vector2f uv = uvs[uvIndex];
                         vertexDataList.add(uv.x);
@@ -188,7 +191,7 @@ public class Mesh {
                         vertexDataList.add(0.0f);
                         vertexDataList.add(0.0f);
                     }
-                    
+
                     indicesList.add(currentIndex);
                     currentIndex++;
                 } else {
@@ -196,20 +199,23 @@ public class Mesh {
                 }
             }
         }
-        
+
         interleavedVertexData = new float[vertexDataList.size()];
         for (int i = 0; i < vertexDataList.size(); i++) {
             interleavedVertexData[i] = vertexDataList.get(i);
         }
         indices = indicesList.stream().mapToInt(i -> i).toArray();
-        
+
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
-        
+
+        // Use a direct FloatBuffer for vertex data.
         vboId = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, interleavedVertexData, GL_STATIC_DRAW);
-        
+        FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(interleavedVertexData.length);
+        vertexBuffer.put(interleavedVertexData).flip();
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
+
         int stride = 8 * Float.BYTES;
         glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
         glEnableVertexAttribArray(0);
@@ -217,15 +223,18 @@ public class Mesh {
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(2, 2, GL_FLOAT, false, stride, 6 * Float.BYTES);
         glEnableVertexAttribArray(2);
-        
+
+        // Use a direct IntBuffer for indices.
         eboId = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
-        
+        IntBuffer indexBuffer = BufferUtils.createIntBuffer(indices.length);
+        indexBuffer.put(indices).flip();
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
+
         glBindVertexArray(0);
         initialized = true;
     }
-    
+
     /**
      * Renders the mesh.
      * <p>
@@ -238,7 +247,7 @@ public class Mesh {
         glDrawElements(GL_TRIANGLES, indices.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
-    
+
     /**
      * Releases the OpenGL buffers associated with this mesh.
      */
@@ -249,7 +258,7 @@ public class Mesh {
             glDeleteVertexArrays(vaoId);
         }
     }
-    
+
     /**
      * Returns a string representation of the mesh.
      *
@@ -258,7 +267,7 @@ public class Mesh {
     @Override
     public String toString() {
         return "Mesh: " + (meshName != null ? meshName : "Unnamed") +
-               "\nVertices: " + vertices.length +
-               "\nTriangles: " + faces.length;
+                "\nVertices: " + vertices.length +
+                "\nTriangles: " + faces.length;
     }
 }

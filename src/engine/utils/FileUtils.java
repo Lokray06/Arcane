@@ -62,6 +62,7 @@ public class FileUtils {
      * @return the file content as a string, or an empty string if an error occurs.
      */
     public static String loadFileAsString(String path) {
+        System.out.println("Loading " + path + " as text");
         try {
             return new String(Files.readAllBytes(Paths.get(path)));
         } catch (IOException e) {

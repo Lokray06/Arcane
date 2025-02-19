@@ -11,6 +11,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,12 +64,12 @@ public class Renderer {
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("fragment.glsl"))
         );
-        
+
         skyboxShader = new ShaderProgram(
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxVertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("skyboxFragment.glsl"))
         );
-        
+
         depthShader = new ShaderProgram(
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl"))
@@ -79,6 +80,13 @@ public class Renderer {
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl")),
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl"))
         );
+
+        String[] shaders = new String[8];
+        for(int i = 0; i < 8; i++)
+        {
+
+        }
+        System.out.println();
         
         shadowMapFBO = GL30.glGenFramebuffers();
         shadowMap = GL11.glGenTextures();
@@ -348,6 +356,9 @@ public class Renderer {
         for (GameObject child : gameObject.children) {
             renderRecursive(child);
         }
+        IntBuffer mapped = BufferUtils.createIntBuffer(1);
+        glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_MAPPED, mapped);
+        System.out.println("Mapped: " + mapped.get(0));
     }
     
     private static void collectDirectionalLights(GameObject gameObject, List<LightDirectional> lights) {

@@ -1,4 +1,4 @@
-#version 460 core
+#version 460 compatibility
 // Inputs from the vertex shader.
 in vec3 fragPos;
 in vec2 fragTexCoord;
@@ -245,9 +245,10 @@ void main()
     // --- Ambient Lighting ---
     // (Note: skyboxAmbient is declared but not used here; if you intended to sample it for ambient,
     //  you may need to add that calculation.)
-    vec3 ambient = vec3(0);
+    vec3 ambient = vec3(0.3);
     vec3 color = ambient * albedo * ao + Lo;
     color = pow(color, vec3(1.0 / 2.2));
 
     outColor = vec4(color, 1.0);
+    //outColor = vec4(vec3(1), 1.0);
 }
