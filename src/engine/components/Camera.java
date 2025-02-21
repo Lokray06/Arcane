@@ -13,6 +13,7 @@ import org.joml.Vector3f;
  * </p>
  */
 public class Camera extends Component {
+    
     /** Field of view (in degrees) for a perspective camera. */
     public float fov = 70;
     /** Size of the view for an orthographic camera. */

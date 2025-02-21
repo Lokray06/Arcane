@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="ImGui">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/lib/ImGui" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/lib/ImGui" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/lib/ImGui" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/ImGui" recursive="false" type="SOURCES" />
+  </library>
+</component>

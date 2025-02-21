@@ -7,7 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="ImGui" level="project" />
     <orderEntry type="library" name="LWJGL" level="project" />
-    <orderEntry type="library" name="joml-1.10.7" level="project" />
   </component>
 </module>

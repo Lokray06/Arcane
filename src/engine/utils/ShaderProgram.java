@@ -139,7 +139,7 @@ public class ShaderProgram {
     public int getUniformLocation(String name) {
         int location = glGetUniformLocation(programId, name);
         if (location == -1) {
-            System.out.println("[ShaderProgram] Warning: Uniform '" + name + "' not found.");
+            //System.out.println("[ShaderProgram] Warning: Uniform '" + name + "' not found.");
         }
         return location;
     }

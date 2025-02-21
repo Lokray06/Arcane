@@ -3,6 +3,7 @@ package engine;
 import engine.components.*;
 import engine.utils.FileUtils;
 import engine.utils.ShaderProgram;
+import engine.utils.Skybox;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
@@ -11,13 +12,11 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL43.*;
@@ -58,7 +57,7 @@ public class Renderer {
      * the shadow map framebuffer and texture.
      */
     public static void init() {
-        enableOpenGLDebugging();
+        //enableOpenGLDebugging();
 
         shaderProgram = new ShaderProgram(
                 FileUtils.loadFileAsString(Engine.shadersPath.concat("vertex.glsl")),

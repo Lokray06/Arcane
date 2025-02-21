@@ -12,6 +12,8 @@ import static engine.Texture.Type;
  * </p>
  */
 public class Material {
+    public String name = "UnnamedMaterial";
+    
     /** The albedo (diffuse) texture map. */
     public Texture albedoMap;
     /** The albedo color multiplier. */

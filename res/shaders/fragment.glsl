@@ -239,7 +239,7 @@ void main()
             vec3 radiance = pointLights[i].color * pointLights[i].strength * uLightStrength * attenuation;
 
             float shadow = calculatePointShadow(i, fragPos);
-            Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
+            Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow) * 0;
         }
     }
 

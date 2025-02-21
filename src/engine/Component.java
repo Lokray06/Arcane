@@ -11,6 +11,7 @@ import engine.components.Transform;
  * </p>
  */
 public abstract class Component {
+    public String name = "Abstract component";
     /** The GameObject this component is attached to. */
     public GameObject gameObject;
     /** The Transform of the GameObject, used for position, rotation, and scale. */

@@ -3,13 +3,14 @@ package test;
 import engine.*;
 import engine.components.*;
 import engine.utils.FileUtils;
+import engine.utils.Skybox;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector4i;
 
 public class Main
 {
-    public static void main(String[] args)
+    public static void main(String[] args) throws IllegalAccessException
     {
         Texture red = new Texture(new Vector3i(255, 0, 0));
         Texture green = new Texture(new Vector3i(0, 255, 0));
@@ -23,8 +24,8 @@ public class Main
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
 
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
-        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Parking-Garage-Müller-Roth-4K.hdr"));
-        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
+        //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Parking-Garage-Müller-Roth-4K.hdr"));
+        CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true);
         Skybox skybox = new Skybox(skyboxTexture);
         

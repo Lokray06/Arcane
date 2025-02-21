@@ -15,6 +15,4 @@ public class LightAmbient extends Component {
     private Vector3f color = new Vector3f(255);
     /** The intensity of the ambient light. */
     private int intensity = 1;
-    
-    // Getters and setters could be added as needed.
 }
