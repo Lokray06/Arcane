@@ -1,6 +1,7 @@
 package engine.utils;
 
 import engine.Mesh;
+import engine.meshTypes.MeshOBJ;
 import org.joml.Vector3f;
 
 /**
@@ -39,7 +40,7 @@ public class Meshes {
         };
         
         // Create and return the Mesh.
-        Mesh skyboxMesh = new Mesh(vertices, faces);
+        Mesh skyboxMesh = new MeshOBJ(vertices, faces);
         skyboxMesh.initMesh();
         return skyboxMesh;
     }

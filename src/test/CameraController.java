@@ -24,11 +24,11 @@ public class CameraController extends Component
             // Movement controls
             if(Input.getKey("ctrl"))
             {
-                moveSpeed = 20;
+                moveSpeed = 50;
             }
             else
             {
-                moveSpeed =10;
+                moveSpeed =20;
             }
             moveSpeed *= Time.deltaTime;
             

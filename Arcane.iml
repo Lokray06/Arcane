@@ -9,5 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="ImGui" level="project" />
     <orderEntry type="library" name="LWJGL" level="project" />
+    <orderEntry type="library" name="org.json-1.6-20240205" level="project" />
   </component>
 </module>

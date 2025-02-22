@@ -25,7 +25,7 @@ public class Texture {
      * Enum representing the different types of textures.
      */
     public enum Type {
-        ALBEDO, NORMAL, ROUGHNESS, METALLIC, AO
+        ALBEDO, NORMAL, ROUGHNESS, METALLIC, AO, HEIGHT
     }
     
     /** The OpenGL texture ID (0 if not yet initialized). */
@@ -112,7 +112,7 @@ public class Texture {
      *
      * @param rgb the RGB values.
      */
-    private void createTexture(Vector3i rgb) {
+    public void createTexture(Vector3i rgb) {
         createTexture(new Vector4i(rgb.x, rgb.y, rgb.z, 255));
     }
     
@@ -127,7 +127,7 @@ public class Texture {
             IntBuffer height = stack.mallocInt(1);
             IntBuffer channels = stack.mallocInt(1);
             
-            STBImage.stbi_set_flip_vertically_on_load(true);
+            STBImage.stbi_set_flip_vertically_on_load(false);
             ByteBuffer image = STBImage.stbi_load(path, width, height, channels, 4);
             
             if (image == null) {
@@ -168,12 +168,15 @@ public class Texture {
             case ROUGHNESS -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255);
             case METALLIC -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255);
             case AO -> pixel.put((byte) 255).put((byte) 255).put((byte) 255).put((byte) 255); // full ambient occlusion.
+            case HEIGHT -> pixel.put((byte) 0).put((byte) 0).put((byte) 0).put((byte) 255); // full ambient occlusion.
         }
         pixel.flip();
         
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, 1, 1, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixel);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         
         loaded = true;

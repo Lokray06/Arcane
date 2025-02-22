@@ -10,9 +10,15 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
 
-out vec3 FragPos;           // World-space position
-out vec2 TexCoords;         // Texture coordinates
-out vec4 FragPosLightSpace; // Position in light space
+// New uniforms for height mapping.
+uniform sampler2D uHeightMap;
+uniform float uHeightScale; // Controls the displacement amount.
+uniform float scaleX;
+uniform float scaleY;
+
+out vec3 FragPos;           // World-space position.
+out vec2 TexCoords;         // Texture coordinates.
+out vec4 FragPosLightSpace; // Position in light space.
 
 // Pass TBN basis vectors to the fragment shader.
 out vec3 vNormal;
@@ -21,15 +27,21 @@ out vec3 vBitangent;
 
 void main()
 {
-    vec4 worldPos = model * vec4(aPos, 1.0);
+    TexCoords = aTexCoords * vec2(scaleX, scaleY);
+    // Sample the height from the height map (assumed grayscale, so red channel is sufficient)
+    float height = texture(uHeightMap, TexCoords).r;
+    // Displace the vertex position along its normal.
+    vec3 displacedPos = aPos + aNormal * (height * uHeightScale);
+
+    // Transform the displaced position to world space.
+    vec4 worldPos = model * vec4(displacedPos, 1.0);
     FragPos = worldPos.xyz;
-    TexCoords = aTexCoords;
     FragPosLightSpace = lightSpaceMatrix * worldPos;
 
-    // Transform normals and tangents using mat3(model)
+    // Transform normals and tangents using the model matrix.
     vNormal = normalize(mat3(model) * aNormal);
     vTangent = normalize(mat3(model) * aTangent);
-    // Revert to the old ordering for the bitangent.
+    // Calculate bitangent.
     vBitangent = normalize(cross(vNormal, vTangent));
 
     gl_Position = projection * view * worldPos;

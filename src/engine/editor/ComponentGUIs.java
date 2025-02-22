@@ -124,6 +124,20 @@ public class ComponentGUIs
             float[] normalValue  = { material.normalMapStrength };
             if (ImGui.sliderFloat("Normal", normalValue, 0.0f, 10.0f))
                 material.normalMapStrength = normalValue[0];
+            
+            //Height
+            float[] heightValue  = { material.heightScale };
+            if (ImGui.sliderFloat("Height", heightValue, 0.0f, 10.0f))
+                material.heightScale = heightValue[0];
+            
+            //Height
+            ImGui.text("Tiling");
+            float[] scaleXValue  = { material.scaleX };
+            if (ImGui.dragFloat("Scale X", scaleXValue, 0.0f, 1000.0f))
+                material.scaleX = scaleXValue[0];
+            float[] scaleYValue  = { material.scaleY };
+            if (ImGui.dragFloat("Scale Y", scaleYValue, 0.0f, 1000.0f))
+                material.scaleY = scaleYValue[0];
         }
         else
         {

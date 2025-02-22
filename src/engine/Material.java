@@ -7,8 +7,9 @@ import static engine.Texture.Type;
 /**
  * Represents a material used for rendering a mesh.
  * <p>
- * A Material contains texture maps (albedo, normal, metallic, roughness, and ambient occlusion)
+ * A Material contains texture maps (albedo, normal, metallic, roughness, height, and ambient occlusion)
  * along with scalar parameters such as metallic and roughness factors.
+ * Additionally, it now includes scaleX and scaleY for texture tiling.
  * </p>
  */
 public class Material {
@@ -34,8 +35,21 @@ public class Material {
     /** Scalar multiplier for the roughness property. */
     public float roughness;
     
+    /** The height map texture. */
+    public Texture heightMap;
+    /** Scalar multiplier for the height displacement property. */
+    public float heightScale;
+    
     /** The ambient occlusion texture map. */
     public Texture aoMap;
+    
+    /**
+     * Tiling factors for texture coordinates.
+     * Set scaleX and scaleY to values greater than 1 to tile textures.
+     * For example, a value of 10 will tile the texture 10 times.
+     */
+    public float scaleX = 1.0f;
+    public float scaleY = 1.0f;
     
     /**
      * A default empty material using default textures.
@@ -46,6 +60,7 @@ public class Material {
             new Texture(Type.METALLIC),
             new Texture(Type.ROUGHNESS),
             new Texture(Type.AO),
+            new Texture(Type.HEIGHT),
             0,
             1
     );
@@ -59,12 +74,11 @@ public class Material {
         this.metallicMap = empty.metallicMap;
         this.roughnessMap = empty.roughnessMap;
         this.aoMap = empty.aoMap;
+        this.heightMap = empty.heightMap;
     }
     
     /**
      * Constructs a material with a specified albedo texture.
-     *
-     * @param albedoMap the albedo texture map.
      */
     public Material(Texture albedoMap) {
         this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
@@ -72,86 +86,62 @@ public class Material {
     
     /**
      * Constructs a material with specified albedo texture, metallic, and roughness values.
-     *
-     * @param albedoMap the albedo texture map.
-     * @param metallic  the metallic factor.
-     * @param roughness the roughness factor.
      */
     public Material(Texture albedoMap, float metallic, float roughness) {
-        this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, metallic, roughness);
+        this(albedoMap, empty.normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, empty.heightMap, metallic, roughness);
     }
     
     /**
      * Constructs a material with specified albedo and normal textures.
-     *
-     * @param albedoMap the albedo texture map.
-     * @param normalMap the normal texture map.
      */
     public Material(Texture albedoMap, Texture normalMap) {
-        this(albedoMap, normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
+        this(albedoMap, normalMap, empty.metallicMap, empty.roughnessMap, empty.aoMap, empty.heightMap, 0, 1);
     }
     
     /**
      * Constructs a material with specified albedo, normal, and metallic textures.
-     *
-     * @param albedoMap   the albedo texture map.
-     * @param normalMap   the normal texture map.
-     * @param metallicMap the metallic texture map.
      */
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap) {
-        this(albedoMap, normalMap, metallicMap, empty.roughnessMap, empty.aoMap, 0, 1);
+        this(albedoMap, normalMap, metallicMap, empty.roughnessMap, empty.aoMap, empty.heightMap, 0, 1);
     }
     
     /**
      * Constructs a material with specified albedo, normal, metallic, and roughness textures.
-     *
-     * @param albedoMap    the albedo texture map.
-     * @param normalMap    the normal texture map.
-     * @param metallicMap  the metallic texture map.
-     * @param roughnessMap the roughness texture map.
      */
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap) {
-        this(albedoMap, normalMap, metallicMap, roughnessMap, empty.aoMap, 0, 1);
+        this(albedoMap, normalMap, metallicMap, roughnessMap, empty.aoMap, empty.heightMap, 0, 1);
     }
     
     /**
      * Constructs a material with specified albedo, normal, metallic, roughness, and AO textures.
-     *
-     * @param albedoMap    the albedo texture map.
-     * @param normalMap    the normal texture map.
-     * @param metallicMap  the metallic texture map.
-     * @param roughnessMap the roughness texture map.
-     * @param aoMap        the ambient occlusion texture map.
      */
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap) {
-        this(albedoMap, normalMap, metallicMap, roughnessMap, aoMap, 0, 1);
+        this(albedoMap, normalMap, metallicMap, roughnessMap, aoMap, empty.heightMap, 0, 1);
     }
     
     /**
      * Constructs a material with all texture maps and scalar parameters.
-     *
-     * @param albedoMap    the albedo texture map.
-     * @param normalMap    the normal texture map.
-     * @param metallicMap  the metallic texture map.
-     * @param roughnessMap the roughness texture map.
-     * @param aoMap        the ambient occlusion texture map.
-     * @param metallic     the metallic factor.
-     * @param roughness    the roughness factor.
      */
     public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap, float metallic, float roughness) {
+        this(albedoMap, normalMap, metallicMap, roughnessMap, aoMap, empty.heightMap, metallic, roughness);
+    }
+    
+    /**
+     * Constructs a material with all texture maps and scalar parameters.
+     */
+    public Material(Texture albedoMap, Texture normalMap, Texture metallicMap, Texture roughnessMap, Texture aoMap, Texture heightMap, float metallic, float roughness) {
         this.albedoMap = albedoMap;
         this.normalMap = normalMap;
         this.metallicMap = metallicMap;
         this.roughnessMap = roughnessMap;
         this.aoMap = aoMap;
+        this.heightMap = heightMap;
         this.metallic = metallic;
         this.roughness = roughness;
     }
     
     /**
      * Returns a string representation of the material.
-     *
-     * @return a string describing the material properties.
      */
     @Override
     public String toString() {
@@ -160,9 +150,12 @@ public class Material {
                ", normalMap=" + normalMap +
                ", metallicMap=" + metallicMap +
                ", roughnessMap=" + roughnessMap +
+               ", heightMap=" + heightMap +
                ", aoMap=" + aoMap +
-               ", specular=" + roughness +
                ", metallic=" + metallic +
+               ", roughness=" + roughness +
+               ", scaleX=" + scaleX +
+               ", scaleY=" + scaleY +
                '}';
     }
 }

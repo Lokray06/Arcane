@@ -2,6 +2,7 @@ package test;
 
 import engine.*;
 import engine.components.*;
+import engine.meshTypes.MeshOBJ;
 import engine.utils.FileUtils;
 import engine.utils.Skybox;
 import org.joml.Vector3f;
@@ -20,19 +21,31 @@ public class Main
         
         Texture metallicTest = new Texture(FileUtils.load("metallicTest.png"));
         
+        //Panels
         Texture panelsAlbedo = new Texture(FileUtils.load("worn-modern-panels_albedo.png"));
         Texture panelsAO = new Texture(FileUtils.load("worn-modern-panels_ao.png"));
         Texture panelsMetallic = new Texture(FileUtils.load("worn-modern-panels_metallic.png"));
         Texture panelsNormal = new Texture(FileUtils.load("worn-modern-panels_normal-ogl.png"));
         Texture panelsRoughness = new Texture(FileUtils.load("worn-modern-panels_roughness.png"));
-        Material panels = new Material(panelsAlbedo, panelsNormal, panelsMetallic, panelsRoughness, panelsAO, 1, 1);
+        Texture panelsHeight = new Texture(FileUtils.load("worn-modern-panels_height.png"));
+        Material panels = new Material(panelsAlbedo, panelsNormal, panelsMetallic, panelsRoughness, panelsAO, panelsHeight, 1, 1);
         panels.name = "Panels";
         
+        //Metal
         Texture metalAlbedo = new Texture(FileUtils.load("1Albedo.png"));
         Texture metalNormal = new Texture(FileUtils.load("1Normal.png"));
         Texture metalAO = new Texture(FileUtils.load("1AO.png"));
         Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO, 1, 0);
 
+        //Bricks
+        Texture bricksAlbedo = new Texture(FileUtils.load("redbricks2b-albedo.png"));
+        Texture bricksNormal = new Texture(FileUtils.load("redbricks2b-normal.png"));
+        Texture bricksAO = new Texture(FileUtils.load("redbricks2b-ao.png"));
+        Texture bricksMetallic = new Texture(FileUtils.load("redbricks2b-metalness.png"));
+        Texture bricksHeight = new Texture(FileUtils.load("redbricks2b-height4b.png"));
+        Texture bricksRoughness = new Texture(FileUtils.load("redbricks2b-rough.png"));
+        Material bricks = new Material(bricksAlbedo, bricksNormal, bricksMetallic, bricksRoughness, bricksAO, bricksHeight, 1, 1);
+        
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Parking-Garage-Müller-Roth-4K.hdr"));
         CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("milkyWay.jpg"));
@@ -48,10 +61,10 @@ public class Main
         String meshPath1 = FileUtils.load("suzanne.obj");
         String meshPath2 = FileUtils.load("plane.obj");
         String sphereMeshPath = FileUtils.load("sphere.obj");
-        Mesh suzanneMesh = new Mesh(meshPath1);
-        Mesh boxMesh = new Mesh(meshPath);
-        Mesh floorMesh = new Mesh(meshPath2);
-        Mesh sphereMesh = new Mesh(sphereMeshPath);
+        Mesh suzanneMesh = new MeshOBJ(meshPath1);
+        Mesh boxMesh = new MeshOBJ(meshPath);
+        Mesh floorMesh = new MeshOBJ(meshPath2);
+        Mesh sphereMesh = new MeshOBJ(sphereMeshPath);
 
         Material spainMaterial = new Material(spain);
 
@@ -63,11 +76,11 @@ public class Main
         floor.getComponent(MeshRenderer.class).material = spainMaterial;
         
         GameObject wall = new GameObject("Wall");
-        wall.transform.scale = new Vector3f(1).mul(50);
+        wall.transform.scale = new Vector3f(50, 50, 1);
         wall.transform.position = new Vector3f(0, 25, -50);
-        wall.transform.rotation = new Vector3f(-90, 0, 0);
         wall.addComponent(MeshRenderer.class);
-        wall.getComponent(MeshRenderer.class).mesh = floorMesh;
+        wall.getComponent(MeshRenderer.class).mesh = boxMesh;
+        wall.getComponent(MeshRenderer.class).material = prototypeMaterial;
 
         GameObject sphere = new GameObject("Sphere", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         sphere.addComponent(MeshRenderer.class);
@@ -88,7 +101,7 @@ public class Main
         box.addComponent(MeshRenderer.class);
         box.addComponent(SuzanneComponent.class);
         box.getComponent(MeshRenderer.class).mesh = boxMesh;
-        box.getComponent(MeshRenderer.class).material = prototypeMaterial;
+        box.getComponent(MeshRenderer.class).material = bricks;
 
         GameObject suzanne2 = new GameObject("Suzanne2", new Transform(new Vector3f(10, 0, 10)));
         suzanne2.addComponent(MeshRenderer.class);

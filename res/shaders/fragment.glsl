@@ -162,10 +162,10 @@ void main()
         float shadow = calculateShadow(FragPosLightSpace, N, L);
         Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
     }
+    vec3 ambient = vec3(0.1f) * albedo * ao;
 
-    // --- Ambient ---
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;
+    vec3 color = Lo + ambient;
+
 
     // HDR tonemapping and gamma correction.
     color = color / (color + vec3(1.0));
