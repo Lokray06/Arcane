@@ -4,8 +4,7 @@ in vec3 FragPos;
 in vec2 TexCoords;
 in vec4 FragPosLightSpace;
 in vec3 vNormal;
-in vec3 vTangent;
-in vec3 vBitangent;
+// vTangent and vBitangent are no longer used since we rebuild TBN in the fragment shader
 
 out vec4 FragColor;
 
@@ -22,7 +21,7 @@ uniform sampler2D uAO;
 uniform vec3 uAlbedoColor;
 uniform float uMetallicScalar;
 uniform float uRoughnessScalar;
-// Use a value in [0, 1] for normal map influence (e.g. 1.0 for full effect)
+// Use a value in [0, 1] for normal map influence (1.0 = full effect)
 uniform float uNormalMapStrength;
 
 // Directional lights
@@ -64,7 +63,7 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-// PBR helper functions...
+// --- PBR helper functions ---
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -93,6 +92,33 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+// --- New Normal Mapping Implementation ---
+// This function rebuilds the TBN matrix using screen-space derivatives.
+vec3 getNormalFromMap()
+{
+    // Sample the tangent-space normal and remap from [0,1] to [-1,1]
+    vec3 tangentNormal = texture(uNormal, TexCoords).rgb;
+    tangentNormal = tangentNormal * 2.0 - 1.0;
+
+    // Compute partial derivatives of the fragment position and texture coordinates.
+    vec3 Q1 = dFdx(FragPos);
+    vec3 Q2 = dFdy(FragPos);
+    vec2 st1 = dFdx(TexCoords);
+    vec2 st2 = dFdy(TexCoords);
+
+    // Use the interpolated normal from the vertex shader.
+    vec3 N = normalize(vNormal);
+    // Compute tangent vector.
+    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+    // Compute bitangent with a negative sign to match the tutorial’s handedness.
+    vec3 B = -normalize(cross(N, T));
+    // Construct the TBN matrix.
+    mat3 TBN = mat3(T, B, N);
+
+    // Transform the sampled normal to world space.
+    return normalize(TBN * tangentNormal);
+}
+
 void main()
 {
     // --- Material ---
@@ -100,18 +126,12 @@ void main()
     float metallic = texture(uMetallic, TexCoords).r * uMetallicScalar;
     float roughness = texture(uRoughness, TexCoords).r * uRoughnessScalar;
     float ao = texture(uAO, TexCoords).r;
-    roughness = clamp(roughness, 0.004, 1.0);
+    roughness = clamp(roughness, 0.006, 1.0);
 
     // --- Normal Mapping ---
-    vec3 normalWorld = normalize(vNormal);
-    vec3 tangentNormal = texture(uNormal, TexCoords).rgb;
-    tangentNormal = tangentNormal * 2.0 - 1.0;
-    // Reconstruct TBN from the vertex-passed basis.
-    mat3 TBN = mat3(vTangent, vBitangent, normalWorld);
-    vec3 mappedNormal = normalize(TBN * tangentNormal);
-    // Blend between the original and the mapped normal.
-    // Use uNormalMapStrength in [0,1] (1.0 = full normal map effect)
-    vec3 N = normalize(mix(normalWorld, mappedNormal, uNormalMapStrength));
+    // Blend between the vertex normal and the derivative-based mapped normal.
+    vec3 normalFromMap = getNormalFromMap();
+    vec3 N = normalize(mix(vNormal, normalFromMap, uNormalMapStrength));
 
     // --- View Direction ---
     vec3 V = normalize(viewPos - FragPos);
@@ -152,10 +172,4 @@ void main()
     color = pow(color, vec3(1.0 / 2.2));
 
     FragColor = vec4(color, 1.0);
-
-    /*
-    tangentNormal = texture(uNormal, TexCoords).rgb;
-    vec3 debugNormal = tangentNormal * 2.0 - 1.0;
-    FragColor = vec4(normalize(debugNormal) * 0.5 + 0.5, 1.0);
-    */
 }

@@ -31,7 +31,7 @@ public class Main
         Texture metalAlbedo = new Texture(FileUtils.load("1Albedo.png"));
         Texture metalNormal = new Texture(FileUtils.load("1Normal.png"));
         Texture metalAO = new Texture(FileUtils.load("1AO.png"));
-        Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO);
+        Material metal = new Material(metalAlbedo, metalNormal, Material.empty.metallicMap, Material.empty.roughnessMap, metalAO, 1, 0);
 
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("brown_photostudio_02_4k.png"));
         //CubeMapTexture skyboxTexture = new CubeMapTexture(FileUtils.load("Parking-Garage-Müller-Roth-4K.hdr"));
@@ -77,7 +77,7 @@ public class Main
         GameObject sphere3 = new GameObject("Sphere3", new Transform(new Vector3f(-10, 0, -4), new Vector3f(1f)));
         sphere3.addComponent(MeshRenderer.class);
         sphere3.getComponent(MeshRenderer.class).mesh = sphereMesh;
-        sphere3.getComponent(MeshRenderer.class).material = redMaterial;
+        sphere3.getComponent(MeshRenderer.class).material = metal;
         
         GameObject sphere2 = new GameObject("sphere2(light)", new Transform(new Vector3f(0, 2, 0), new Vector3f(0.0f)));
         sphere2.addComponent(MeshRenderer.class);
