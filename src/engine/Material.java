@@ -22,7 +22,7 @@ public class Material {
     /** The normal map texture. */
     public Texture normalMap;
     /** Scalar multiplier for the normal map strength. */
-    public float normalMapStrength = 1;
+    public float normalMapStrength = 100;
     
     /** The metallic texture map. */
     public Texture metallicMap;

@@ -18,10 +18,12 @@ public class Main
         Texture spain = new Texture(FileUtils.load("spain.jpg"));
         Texture prototype = new Texture(FileUtils.load("darkTexture01.png"));
         
+        Texture metallicTest = new Texture(FileUtils.load("metallicTest.png"));
+        
         Texture panelsAlbedo = new Texture(FileUtils.load("worn-modern-panels_albedo.png"));
         Texture panelsAO = new Texture(FileUtils.load("worn-modern-panels_ao.png"));
         Texture panelsMetallic = new Texture(FileUtils.load("worn-modern-panels_metallic.png"));
-        Texture panelsNormal = new Texture(FileUtils.load("worn-modern-panels_normal.png"));
+        Texture panelsNormal = new Texture(FileUtils.load("worn-modern-panels_normal-ogl.png"));
         Texture panelsRoughness = new Texture(FileUtils.load("worn-modern-panels_roughness.png"));
         Material panels = new Material(panelsAlbedo, panelsNormal, panelsMetallic, panelsRoughness, panelsAO, 1, 1);
         panels.name = "Panels";

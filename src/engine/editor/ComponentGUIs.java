@@ -119,6 +119,11 @@ public class ComponentGUIs
             float[] roughnessValue = { material.roughness };
             if (ImGui.sliderFloat("Roughness", roughnessValue, 0.0f, 1.0f))
                 material.roughness = roughnessValue[0];
+            
+            //Normal
+            float[] normalValue  = { material.normalMapStrength };
+            if (ImGui.sliderFloat("Normal", normalValue, 0.0f, 10.0f))
+                material.normalMapStrength = normalValue[0];
         }
         else
         {
