@@ -177,12 +177,18 @@ void main()
     float ao = texture(uAO, fragTexCoord).r;
 
     // --- Normal Mapping ---
-    vec3 normalWorld = normalize(vNormal);
+    // Sample and decode the tangent-space normal from the normal map.
     vec3 tangentNormal = texture(uNormal, fragTexCoord).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
-    mat3 TBN = mat3(normalize(vTangent), normalize(vBitangent), normalWorld);
-    vec3 mappedNormal = normalize(TBN * tangentNormal);
-    vec3 N = normalize(mix(normalWorld, mappedNormal, uNormalMapStrength));
+
+    // Blend with the default (unperturbed) normal in tangent space.
+    tangentNormal = normalize(mix(vec3(0.0, 0.0, 1.0), tangentNormal, uNormalMapStrength));
+
+    // Construct the TBN matrix using the vertex tangent, bitangent, and normal.
+    mat3 TBN = mat3(normalize(vTangent), normalize(vBitangent), normalize(vNormal));
+
+    // Transform the tangent-space normal into world space.
+    vec3 N = normalize(TBN * tangentNormal);
 
     // --- View Direction ---
     vec3 V = normalize(viewPos - fragPos);
@@ -253,4 +259,13 @@ void main()
 
     outColor = vec4(color, 1.0);
     //outColor = vec4(vec3(1), 1.0);
+
+    // --- DEBUG THE NORMAL MAP ---
+    /*
+    vec3 debugNormal = texture(uNormal, fragTexCoord).rgb;
+    // Optionally, if you want to see the actual normal vectors, you can decode and re-map:
+    vec3 decodedNormal = debugNormal * 2.0 - 1.0;
+    decodedNormal = (decodedNormal + 1.0) / 2.0; // Back to [0, 1] for display.
+    outColor = vec4(debugNormal, 1.0);
+    */
 }

@@ -109,6 +109,16 @@ public class ComponentGUIs
         if(material != null)
         {
             ImGui.textColored(accent, "Material: " + material.name);
+            
+            //Metallic
+            float[] metallicValue = { material.metallic };
+            if (ImGui.sliderFloat("Metallic", metallicValue, 0.0f, 1.0f))
+                material.metallic = metallicValue[0];
+            
+            //Roughness
+            float[] roughnessValue = { material.roughness };
+            if (ImGui.sliderFloat("Roughness", roughnessValue, 0.0f, 1.0f))
+                material.roughness = roughnessValue[0];
         }
         else
         {

@@ -18,6 +18,14 @@ public class Main
         Texture spain = new Texture(FileUtils.load("spain.jpg"));
         Texture prototype = new Texture(FileUtils.load("darkTexture01.png"));
         
+        Texture panelsAlbedo = new Texture(FileUtils.load("worn-modern-panels_albedo.png"));
+        Texture panelsAO = new Texture(FileUtils.load("worn-modern-panels_ao.png"));
+        Texture panelsMetallic = new Texture(FileUtils.load("worn-modern-panels_metallic.png"));
+        Texture panelsNormal = new Texture(FileUtils.load("worn-modern-panels_normal.png"));
+        Texture panelsRoughness = new Texture(FileUtils.load("worn-modern-panels_roughness.png"));
+        Material panels = new Material(panelsAlbedo, panelsNormal, panelsMetallic, panelsRoughness, panelsAO, 1, 1);
+        panels.name = "Panels";
+        
         Texture metalAlbedo = new Texture(FileUtils.load("1Albedo.png"));
         Texture metalNormal = new Texture(FileUtils.load("1Normal.png"));
         Texture metalAO = new Texture(FileUtils.load("1AO.png"));
@@ -59,10 +67,10 @@ public class Main
         wall.addComponent(MeshRenderer.class);
         wall.getComponent(MeshRenderer.class).mesh = floorMesh;
 
-        GameObject sphere = new GameObject("Suzanne", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
+        GameObject sphere = new GameObject("Sphere", new Transform(new Vector3f(10, 0, 0), new Vector3f(3f)));
         sphere.addComponent(MeshRenderer.class);
         sphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
-        sphere.getComponent(MeshRenderer.class).material = metal;
+        sphere.getComponent(MeshRenderer.class).material = panels;
         
         GameObject sphere3 = new GameObject("Sphere3", new Transform(new Vector3f(-10, 0, -4), new Vector3f(1f)));
         sphere3.addComponent(MeshRenderer.class);
