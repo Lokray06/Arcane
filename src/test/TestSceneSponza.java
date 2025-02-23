@@ -18,13 +18,21 @@ public class TestSceneSponza
         Material blueMaterial = new Material(blue, 0, 0);
         Mesh sponzaMesh = new MeshGLTF(FileUtils.load("Sponza.gltf"));
         Mesh suzanneMesh = new MeshOBJ(suzanneMeshPath);
+        Mesh bottleMesh = new MeshGLTF(FileUtils.load("WaterBottle.gltf"));
         
         GameObject suzanne = new GameObject("Suzanne");
         suzanne.addComponent(MeshRenderer.class);
         suzanne.getComponent(MeshRenderer.class).mesh = suzanneMesh;
         suzanne.getComponent(MeshRenderer.class).material = blueMaterial;
+        suzanne.transform.scale = new Vector3f(0.1f);
+        suzanne.transform.position = new Vector3f(-1, 1, 0);
         
-        GameObject sponza = new GameObject("Soponza", new Transform(new Vector3f(0), new Vector3f(0.1f)));
+        GameObject bottle = new GameObject("Bottle");
+        bottle.addComponent(MeshRenderer.class);
+        bottle.getComponent(MeshRenderer.class).mesh = bottleMesh;
+        bottle.transform.position = new Vector3f(1, 1, 0);
+        
+        GameObject sponza = new GameObject("Soponza", new Transform(new Vector3f(0), new Vector3f(0.005f)));
         sponza.addComponent(MeshRenderer.class);
         sponza.getComponent(MeshRenderer.class).mesh = sponzaMesh;
         //sponza.getComponent(MeshRenderer.class).mesh = new MeshOBJ(FileUtils.load("sponza.obj"));
@@ -49,6 +57,7 @@ public class TestSceneSponza
         
         scene.addGameObject(sponza);
         scene.addGameObject(suzanne);
+        scene.addGameObject(bottle);
         
         scene.addGameObject(sun);
         scene.addGameObject(camera);
