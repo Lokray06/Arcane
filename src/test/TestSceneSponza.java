@@ -29,7 +29,7 @@ public class TestSceneSponza
         sponza.getComponent(MeshRenderer.class).mesh = sponzaMesh;
         //sponza.getComponent(MeshRenderer.class).mesh = new MeshOBJ(FileUtils.load("sponza.obj"));
         
-        Skybox skybox = new Skybox(new CubeMapTexture(FileUtils.load("Daylight Box UV.png"), true));
+        Skybox skybox = new Skybox(new CubeMapTexture(FileUtils.load("default4k.png")));
 
         Scene scene = new Scene("TestScene");
 
