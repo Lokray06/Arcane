@@ -3,6 +3,7 @@ package engine;
 import engine.components.*;
 import engine.meshTypes.MeshGLTF;
 import engine.utils.FileUtils;
+import engine.utils.Meshes;
 import engine.utils.ShaderProgram;
 import engine.utils.Skybox;
 import org.joml.Matrix4f;
@@ -31,6 +32,7 @@ public class Renderer
     private static final String PROJECTION_UNIFORM = "projection";
     
     private static ShaderProgram skyboxShader;
+    private static ShaderProgram debugShader;
     
     // Cascaded shadow parameters for directional light.
     public static int cascadeCount = 4;
@@ -69,6 +71,8 @@ public class Renderer
         depthShader = new ShaderProgram(FileUtils.loadFileAsString(Engine.shadersPath.concat("depthVertex.glsl")), FileUtils.loadFileAsString(Engine.shadersPath.concat("depthFragment.glsl")));
         
         pointDepthShader = new ShaderProgram(FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthVertex.glsl")), FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthGeometry.glsl")), FileUtils.loadFileAsString(Engine.shadersPath.concat("pointDepthFragment.glsl")));
+        
+        debugShader = new ShaderProgram(FileUtils.loadFileAsString(Engine.shadersPath.concat("debugCube.vert")), FileUtils.loadFileAsString(Engine.shadersPath.concat("debugCube.frag")));
         
         // (Unused shader array removed for clarity)
         
@@ -284,11 +288,48 @@ public class Renderer
         {
             skybox = skyboxGO.getComponent(Skybox.class);
         }
-        if(skybox != null && skybox.getCubeMap() != null)
-        {
+        if (skybox != null && skybox.getCubeMap() != null) {
+            // Bind the skybox cube map to texture unit 5
             bindTexture(5, GL_TEXTURE_CUBE_MAP, skybox.getCubeMap().getID(), "Skybox Cube Map");
             shaderProgram.setUniform("skyboxAmbient.cubemap", 5);
             shaderProgram.setUniform("skyboxAmbient.strength", 1);
+            
+            // Bind the prefiltered map to texture unit 6
+            bindTexture(9, GL_TEXTURE_CUBE_MAP, skybox.getPrefilteredMap().getID(), "Prefiltered Map");
+            shaderProgram.setUniform("prefilterMap", 9);
+            
+            // Bind the irradiance map to texture unit 7
+            bindTexture(7, GL_TEXTURE_CUBE_MAP, skybox.getIrradianceMap().getID(), "Irradiance Map");
+            shaderProgram.setUniform("irradianceMap", 7);
+            
+            Texture BRDF_IBL_LUT = new Texture(FileUtils.load("ibl_brdf_lut.png"), true);
+            
+            bindTexture(8, GL_TEXTURE, BRDF_IBL_LUT.getID(), "brdfLUT");
+            shaderProgram.setUniform("brdfLUT", 8);
+            
+            //Debug render
+            // Bind the debug shader and set its uniforms.
+            /*
+            debugShader.use();
+            
+            // Bind the prefiltered cubemap to texture unit, say, 0.
+            bindTexture(0, GL_TEXTURE_CUBE_MAP, skybox.getPrefilteredMap().getID(), "Prefiltered Map");
+            debugShader.setUniform("prefilterMap", 0);
+            
+            // Set the debug mip level. Try 0.0 for the sharp environment.
+            debugShader.setUniform("debugMip", 0.0f);
+            
+            // Set view and projection matrices (for a skybox, remove translation from view).
+            Matrix4f view = mainCamera.viewMatrix;
+            Matrix4f projection = getProjectionMatrix(mainCamera);
+            debugShader.setUniformMat4("view", view);
+            debugShader.setUniformMat4("projection", projection);
+            
+            // Render your debug skybox (a cube mesh that covers the view)
+            Mesh skyboxMesh = Meshes.createSkybox();
+            skyboxMesh.render();
+             */
+            
         }
         else
         {

@@ -24,6 +24,11 @@ uniform float uRoughnessScalar;
 // Use a value in [0, 1] for normal map influence (1.0 = full effect)
 uniform float uNormalMapStrength;
 
+// IBL Environment Maps
+uniform samplerCube irradianceMap;  // Diffuse IBL
+uniform samplerCube prefilterMap;   // Specular IBL
+uniform sampler2D brdfLUT;          // BRDF LUT for Fresnel-Schlick
+
 // Directional lights
 #define MAX_DIR_LIGHTS 10
 struct DirectionalLight {
@@ -126,7 +131,7 @@ void main()
     float metallic = texture(uMetallic, TexCoords).r * uMetallicScalar;
     float roughness = texture(uRoughness, TexCoords).r * uRoughnessScalar;
     float ao = texture(uAO, TexCoords).r;
-    roughness = clamp(roughness, 0.006, 1.0);
+    roughness = clamp(roughness, 0.0, 1.0);
 
     // --- Normal Mapping ---
     // Blend between the vertex normal and the derivative-based mapped normal.
@@ -138,6 +143,18 @@ void main()
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
+
+    // IBL: Diffuse Indirect Lighting
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 diffuseIBL = irradiance * albedo;
+
+    // IBL: Specular Indirect Lighting
+    vec3 R = reflect(-V, N);
+    float roughnessLevel = roughness * 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, roughnessLevel).rgb;
+    vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+
+    vec3 specularIBL = prefilteredColor * (F0 * brdf.x + brdf.y);
 
     // --- Directional Lights ---
     for (int i = 0; i < numDirectionalLights; ++i)
@@ -162,14 +179,14 @@ void main()
         float shadow = calculateShadow(FragPosLightSpace, N, L);
         Lo += (diffuse + specular) * radiance * NdotL * (1.0 - shadow);
     }
-    vec3 ambient = vec3(0.1f) * albedo * ao;
 
+    vec3 ambient = (diffuseIBL + specularIBL) * ao;
     vec3 color = Lo + ambient;
 
-
-    // HDR tonemapping and gamma correction.
+    // HDR tonemapping and gamma correction
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 
     FragColor = vec4(color, 1.0);
+
 }

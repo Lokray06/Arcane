@@ -15,8 +15,11 @@ public class TestSceneSponza
     {
         Texture blue = new Texture(new Vector4i(0, 0, 255, 20));
         String suzanneMeshPath = FileUtils.load("suzanne.obj");
+        String sphereMeshPath = FileUtils.load("sphere.obj");
         Material blueMaterial = new Material(blue, 0, 0);
+        Material metalMaterial = Material.empty;
         Mesh sponzaMesh = new MeshGLTF(FileUtils.load("Sponza.gltf"));
+        Mesh sphereMesh = new MeshOBJ(sphereMeshPath);
         Mesh suzanneMesh = new MeshOBJ(suzanneMeshPath);
         Mesh bottleMesh = new MeshGLTF(FileUtils.load("WaterBottle.gltf"));
         
@@ -27,15 +30,20 @@ public class TestSceneSponza
         suzanne.transform.scale = new Vector3f(0.1f);
         suzanne.transform.position = new Vector3f(-1, 1, 0);
         
+        GameObject metalSphere = new GameObject("Metal sphere");
+        metalSphere.transform.scale = new Vector3f(0.5f);
+        metalSphere.addComponent(MeshRenderer.class);
+        metalSphere.getComponent(MeshRenderer.class).mesh = sphereMesh;
+        metalSphere.getComponent(MeshRenderer.class).material = metalMaterial;
+        
         GameObject bottle = new GameObject("Bottle");
         bottle.addComponent(MeshRenderer.class);
         bottle.getComponent(MeshRenderer.class).mesh = bottleMesh;
         bottle.transform.position = new Vector3f(1, 1, 0);
         
-        GameObject sponza = new GameObject("Soponza", new Transform(new Vector3f(0), new Vector3f(0.005f)));
+        GameObject sponza = new GameObject("Sponza", new Transform(new Vector3f(0), new Vector3f(0.005f)));
         sponza.addComponent(MeshRenderer.class);
         sponza.getComponent(MeshRenderer.class).mesh = sponzaMesh;
-        //sponza.getComponent(MeshRenderer.class).mesh = new MeshOBJ(FileUtils.load("sponza.obj"));
         
         Skybox skybox = new Skybox(new CubeMapTexture(FileUtils.load("default4k.png")));
 
@@ -55,9 +63,10 @@ public class TestSceneSponza
         scene.getRootGameObject().addComponent(GameStuff.class);
         scene.getRootGameObject().addComponent(skybox);
         
-        scene.addGameObject(sponza);
+        //scene.addGameObject(sponza);
         scene.addGameObject(suzanne);
         scene.addGameObject(bottle);
+        scene.addGameObject(metalSphere);
         
         scene.addGameObject(sun);
         scene.addGameObject(camera);

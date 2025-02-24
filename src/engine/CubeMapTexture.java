@@ -32,7 +32,7 @@ public class CubeMapTexture {
     // The OpenGL texture ID for the cubemap (0 if not yet initialized).
     private int textureID = 0;
     // The path to the texture image file.
-    private final String texturePath;
+    private String texturePath = "";
     // Flag indicating whether the texture has been loaded.
     private boolean loaded = false;
     // Flag indicating if the provided image is an equirectangular image that should be converted to a cubemap.
@@ -57,7 +57,41 @@ public class CubeMapTexture {
         this.texturePath = texturePath;
         this.isCubemap = isCubemap;
     }
-
+    // New constructor to create an empty cube map.
+    public CubeMapTexture(int width, int height, int internalFormat, int format, int type) {
+        // Generate texture ID.
+        textureID = GL11.glGenTextures();
+        // Bind as a cubemap.
+        GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, textureID);
+        
+        // Allocate memory for each face (without initial data).
+        for (int i = 0; i < 6; i++) {
+            GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                              0, internalFormat, width, height, 0,
+                              format, type, (ByteBuffer) null);
+        }
+        
+        // Set texture parameters.
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL12.GL_TEXTURE_WRAP_R, GL12.GL_CLAMP_TO_EDGE);
+        
+        GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, 0);
+        // Mark the texture as loaded.
+        loaded = true;
+    }
+    
+    // Method to generate mipmaps for the cubemap.
+    public void enableMipmaps() {
+        ensureLoaded();
+        GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, textureID);
+        GL30.glGenerateMipmap(GL13.GL_TEXTURE_CUBE_MAP);
+        GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, 0);
+    }
+    
+    
     /**
      * Loads the cubemap texture.
      * <p>
@@ -157,7 +191,7 @@ public class CubeMapTexture {
                 // Create a ByteBuffer view to free HDR memory.
                 ByteBuffer freeBuffer = MemoryUtil.memByteBuffer(
                         MemoryUtil.memAddress((FloatBuffer) image),
-                        ((FloatBuffer) image).capacity() * Float.BYTES
+                        (image).capacity() * Float.BYTES
                 );
                 STBImage.stbi_image_free(freeBuffer);
             } else {
@@ -199,6 +233,9 @@ public class CubeMapTexture {
             }
         }
         return faceData;
+    }
+    public boolean isHDR() {
+        return texturePath != null && texturePath.toLowerCase().endsWith(".hdr");
     }
 
     /**
@@ -482,6 +519,7 @@ public class CubeMapTexture {
 
         loaded = true;
     }
+    
 
     /**
      * Ensures the cubemap texture is loaded.
@@ -522,5 +560,10 @@ public class CubeMapTexture {
             textureID = 0;
             loaded = false;
         }
+    }
+    
+    public int getId()
+    {
+        return this.textureID;
     }
 }
